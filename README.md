@@ -1,1 +1,1 @@
-# osakenomitai-map
+# osakenomitai
