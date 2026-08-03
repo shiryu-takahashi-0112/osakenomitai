@@ -315,10 +315,10 @@ function escapeHtml(str){
 
 /* ---------- Map init ---------- */
 const map = L.map('map', {zoomControl:false, attributionControl:false, tap:true}).setView([35.68, 139.72], 12);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  subdomains: 'abcd', maxZoom: 20
+L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+  maxZoom: 18, maxNativeZoom: 18
 }).addTo(map);
-L.control.attribution({position:'bottomleft', prefix:false}).addAttribution('&copy; OpenStreetMap &copy; CARTO').addTo(map);
+L.control.attribution({position:'bottomleft', prefix:false}).addAttribution('地理院タイル(国土地理院)').addTo(map);
 
 function lanternIcon(){
   const w = 26, h = 33;
