@@ -154,6 +154,22 @@
   .posted-by{margin-top:18px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;}
   .danger-btn{margin-top:28px;border:none;background:none;color:#c0392b;font-size:13px;font-weight:700;cursor:pointer;padding:6px 0;}
 
+  /* 下から出るシート（行った記録・シェア） */
+  .sheet-backdrop{position:absolute;inset:0;z-index:1800;background:rgba(18,18,18,.4);display:none;}
+  .sheet-backdrop.open{display:block;}
+  .bsheet{
+    position:absolute;left:0;right:0;bottom:0;z-index:1900;background:var(--white);border-radius:20px 20px 0 0;
+    padding:10px 20px calc(24px + var(--safe-b));max-height:88%;overflow-y:auto;
+    transform:translateY(105%);transition:transform .25s ease;
+  }
+  .bsheet.open{transform:none;}
+  .bsheet-grip{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px;}
+  .bsheet h3{font-size:17px;margin:0 0 4px;}
+  .bsheet .sub{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.7;}
+  .bsheet .btn + .btn{margin-top:10px;}
+  .share-img{display:block;width:62%;margin:0 auto 16px;border-radius:12px;box-shadow:0 4px 18px rgba(18,18,18,.15);}
+  .visit-ig{margin-top:14px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;border-bottom:2px solid var(--main);}
+
   /* マイページ */
   .login-card{background:var(--surface-soft);border-radius:16px;padding:22px 18px;text-align:center;margin-top:8px;}
   .login-card p{font-size:13px;color:var(--muted);line-height:1.8;margin:0 0 14px;}
@@ -330,6 +346,26 @@
     <button class="tab" data-view="mypage"><i class="ri-user-3-line ic-off"></i><i class="ri-user-3-fill ic-on"></i><span>マイページ</span></button>
   </nav>
 
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <div class="bsheet" id="visitSheet">
+    <div class="bsheet-grip"></div>
+    <h3 id="visitTitle">行った記録</h3>
+    <p class="sub">このお店について投稿したInstagramのURLを貼ると、記録に紐づけられます（なくても記録できます）。</p>
+    <input class="input" id="visitIg" maxlength="300" inputmode="url" placeholder="https://www.instagram.com/p/…">
+    <div style="margin-top:16px">
+      <button class="btn btn-main" id="visitSave"><i class="ri-footprint-line"></i>行ったに記録する</button>
+      <button class="btn btn-secondary" id="visitRemove" hidden>記録を消す</button>
+    </div>
+  </div>
+  <div class="bsheet" id="shareSheet">
+    <div class="bsheet-grip"></div>
+    <h3>酒場の記録をシェア</h3>
+    <p class="sub">画像を保存して、InstagramのストーリーやXに載せられます。</p>
+    <img class="share-img" id="shareImg" alt="">
+    <button class="btn btn-main" id="shareImgBtn"><i class="ri-share-forward-line"></i>画像を共有・保存する</button>
+    <a class="btn btn-primary" id="shareX" target="_blank" rel="noopener"><svg class="ig-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>Xに投稿する</a>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <div class="splash" id="splash">
@@ -358,6 +394,7 @@ const db = firebase.firestore();
 let currentUser = null;
 let savedIds = new Set();
 let historyCount = 0;
+let visits = new Map();   // 行った店：shopId → {ig}
 </script>
 <script>
 const SHOPS = [{"name": "あつ盛", "area": "神保町", "cat": "izakaya", "addr": "東京都千代田区神田神保町3-2-1 サンライトビル 1F", "walk": "神保町駅から徒歩2分", "price": "3,000 - 5,000円", "hours": "月 18:00-00:00 / 火-金 17:00-00:00 / 土日祝 16:00-00:00", "closed": "不定休", "desc": "神保町にある大衆立ち飲み酒場。メシが美味すぎて飲み過ぎ注意。", "lat": 35.696079, "lng": 139.754456, "ig": "https://www.instagram.com/p/DS8tuqeE7tx/", "id": 1}, {"name": "折原商店", "area": "門前仲町", "cat": "sakaya", "addr": "東京都江東区富岡1-13-11 折原門仲ビル1F", "walk": "門前仲町駅から徒歩1分", "price": "2,000 - 3,000円", "hours": "月-金 12:00-22:00 / 土日 11:00-22:00", "closed": "なし", "desc": "門前仲町にある立飲み角打ち酒場。昼のみで日本酒とおでんを。", "lat": 35.671806, "lng": 139.797592, "ig": "https://www.instagram.com/p/DS6ZGTgk3ZG/", "id": 2}, {"name": "三幸酒店", "area": "上野", "cat": "sakaya", "addr": "東京都台東区上野4-7-8 アメ横センタービル 1F", "walk": "上野駅から徒歩7分", "price": "2,000 - 4,000円", "hours": "12:00-22:00", "closed": "なし", "desc": "アメ横にある海鮮立ち飲み酒場。飯が美味すぎる。", "lat": 35.709705, "lng": 139.774414, "ig": "https://www.instagram.com/p/DVPSo1AEyoz/", "id": 3}, {"name": "モダン酒場KANPAI", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番2-20-5 ハイツ富士 1F", "walk": "学芸大学駅から徒歩2分", "price": "4,000 - 7,000円", "hours": "月-金 17:00-01:00 / 土日祝 12:00-01:00", "closed": "なし", "desc": "おしゃれな雰囲気でゆっくり楽しめるモダンな酒場。", "lat": 35.62923, "lng": 139.686874, "ig": "https://www.instagram.com/p/DbHpi2YBepo/", "id": 4}, {"name": "新橋 立ち飲み 酔処", "area": "新橋", "cat": "izakaya", "addr": "東京都港区新橋2-13-4", "walk": "新橋駅から徒歩5分", "price": "1,000 - 3,000円", "hours": "月-金 17:00-23:00 / 土祝 15:00-22:00", "closed": "日曜日", "desc": "清潔感のある店内で立ち飲みするならここ。完全な穴場。", "lat": 35.666847, "lng": 139.755173, "ig": "https://www.instagram.com/p/DZoYPbuBEhH/", "id": 5}, {"name": "今日も大漁や", "area": "恵比寿", "cat": "izakaya", "addr": "東京都渋谷区恵比寿西1-7-10 金原ビル 2F", "walk": "恵比寿駅から徒歩3分", "price": "3,000 - 5,000円", "hours": "月-木 17:00-00:30 / 金 17:00-01:00 / 土日祝 16:00-00:00", "closed": "年末年始", "desc": "ビルの2階で楽しめる穴場海鮮酒場。", "lat": 35.64777, "lng": 139.708618, "ig": "https://www.instagram.com/p/DVLRKlaEcJY/", "id": 6}, {"name": "oasis", "area": "中目黒", "cat": "bar", "addr": "東京都目黒区上目黒2-13-6 神田屋ビル 1F", "walk": "中目黒駅から徒歩3分", "price": "2,000 - 4,000円", "hours": "火水木 15:00-23:00 / 金 15:00-00:00 / 土 14:00-00:00 / 日祝 14:00-23:00", "closed": "月曜日", "desc": "中目の立ち飲みと言えばここ。クラフトビールを立ちで。", "lat": 35.642673, "lng": 139.698212, "ig": "https://www.instagram.com/p/DVAjYndEaND/", "id": 7}, {"name": "サンチャ フカミ", "area": "三軒茶屋", "cat": "izakaya", "addr": "東京都世田谷区太子堂3-14-8", "walk": "三軒茶屋駅から徒歩7分", "price": "3,000 - 5,000円", "hours": "月-土 18:00-24:00 / 日 13:00-17:00", "closed": "なし", "desc": "住宅街に潜むオシャレ酒場。", "lat": 35.64727, "lng": 139.669678, "ig": "https://www.instagram.com/p/DU9n7Pfk47K/", "id": 8}, {"name": "Longfellows", "area": "祐天寺", "cat": "bar", "addr": "東京都目黒区祐天寺2-15-8", "walk": "祐天寺駅から徒歩3分", "price": "3,000 - 5,000円", "hours": "12:00-21:00", "closed": "火曜日", "desc": "祐天寺にある角打ちワイン。センス良すぎる隠れ家。", "lat": 35.63596, "lng": 139.690689, "ig": "https://www.instagram.com/p/DU1pVD8E_Jl/", "id": 9}, {"name": "ワンコイン割烹魚金", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-3-16 宮澤ビル 1F", "walk": "学芸大学駅から徒歩1分", "price": "3,000 - 6,000円", "hours": "16:00-23:00", "closed": "月曜日", "desc": "オール500円で海鮮料理が楽しめるコスパ最高な海鮮酒場。", "lat": 35.628662, "lng": 139.685333, "ig": "https://www.instagram.com/p/DUzis-ikyNh/", "id": 10}, {"name": "恵比寿ファイヤーガーデン", "area": "恵比寿", "cat": "izakaya", "addr": "東京都渋谷区恵比寿西1-29-9 ツゥロワイー代官山 B1F", "walk": "恵比寿駅から徒歩5分", "price": "5,000 - 7,000円", "hours": "17:00-23:00", "closed": "月曜日", "desc": "激辛好きにはたまらない恵比寿の激辛料理店。", "lat": 35.648621, "lng": 139.706573, "ig": "https://www.instagram.com/p/DUpCPK6E02w/", "id": 11}, {"name": "笑口房", "area": "祐天寺", "cat": "izakaya", "addr": "東京都目黒区祐天寺2-12-19 山寺ビル 2F", "walk": "祐天寺駅から徒歩1分", "price": "2,000 - 5,000円", "hours": "11:30-15:00 / 17:00-23:00", "closed": "月曜日", "desc": "ワインも楽しめる中華料理屋。", "lat": 35.63731, "lng": 139.691513, "ig": "https://www.instagram.com/p/DUuU-a9k6Zy/", "id": 12}, {"name": "魚の店 オカモ倶楽部", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒3-5-29", "walk": "中目黒駅から徒歩2分", "price": "4,000 - 5,000円", "hours": "月-金 17:00-01:00 / 土日祝 17:00-00:00", "closed": "なし", "desc": "中目黒の高架下に潜む海鮮酒場。海鮮から揚げ物まで。", "lat": 35.643215, "lng": 139.697601, "ig": "https://www.instagram.com/p/DUmFOJ9E0Wb/", "id": 13}, {"name": "煮込みDining Choi.s", "area": "代官山", "cat": "izakaya", "addr": "東京都渋谷区猿楽町1-5 代官山ハイム 1F", "walk": "代官山駅から徒歩8分", "price": "4,000 - 5,000円", "hours": "月-金 12:00-14:00 18:00-23:00 / 土 18:00-23:00", "closed": "日曜日", "desc": "代官山に潜む中華酒場。", "lat": 35.653557, "lng": 139.70491, "ig": "https://www.instagram.com/p/DUkIJZikwSO/", "id": 14}, {"name": "裏のさかな屋", "area": "祐天寺", "cat": "izakaya", "addr": "東京都目黒区祐天寺1-22-9", "walk": "祐天寺駅から徒歩2分", "price": "4,000 - 6,000円", "hours": "16:00-01:00", "closed": "月曜日", "desc": "つまみから〆まで楽しめる海鮮酒場。寿司からラーメンまで。", "lat": 35.638065, "lng": 139.691818, "ig": "https://www.instagram.com/p/DUUFMPQEytj/", "id": 15}, {"name": "タイフー トウキョウ", "area": "神楽坂", "cat": "bar", "addr": "東京都新宿区神楽坂4-4 河庄ビル", "walk": "神楽坂駅から徒歩10分", "price": "2,000 - 4,000円", "hours": "月 16:00-23:00 / 火-日 11:30-23:00", "closed": "なし", "desc": "神楽坂にあるオシャレすぎる台湾ビアバー。", "lat": 35.701981, "lng": 139.739929, "ig": "https://www.instagram.com/p/DUPjQSFE8HO/", "id": 16}, {"name": "ニショク", "area": "自由が丘", "cat": "izakaya", "addr": "東京都世田谷区奥沢5-28-15 昇栄ビル 1F", "walk": "自由が丘駅から徒歩3分", "price": "3,000 - 5,000円", "hours": "月-土祝 17:00-00:00 / 日 17:00-23:00", "closed": "なし", "desc": "自由が丘にある立ち飲み可能なネオ酒場。", "lat": 35.606281, "lng": 139.668045, "ig": "https://www.instagram.com/p/DT_i0XuE_Su/", "id": 17}, {"name": "チャオチャオバンブー", "area": "原宿", "cat": "izakaya", "addr": "東京都渋谷区神宮前6-7-12 1F", "walk": "原宿駅から徒歩3分", "price": "1,000 - 3,000円", "hours": "11:00-22:00", "closed": "年末年始", "desc": "場所は分かりにくいが美味すぎる原宿のタイ料理屋。", "lat": 35.667034, "lng": 139.705887, "ig": "https://www.instagram.com/p/DT9hqopEVAP/", "id": 18}, {"name": "アカベコ", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒2-12-3", "walk": "中目黒駅から徒歩3分", "price": "4,000 - 7,000円", "hours": "17:00-23:00", "closed": "年末年始", "desc": "中目黒の路地にある飯うま大衆酒場。牛タンが名物。", "lat": 35.642616, "lng": 139.698868, "ig": "https://www.instagram.com/p/DT32yaIEybs/", "id": 19}, {"name": "ルポン", "area": "恵比寿", "cat": "izakaya", "addr": "東京都渋谷区恵比寿西1-7-13 1F", "walk": "恵比寿駅から徒歩3分", "price": "2,000 - 5,000円", "hours": "日-木 15:00-00:00 / 金土 15:00-02:00", "closed": "年末年始", "desc": "恵比寿の路地に潜む立ち飲み本格中華。", "lat": 35.647835, "lng": 139.708801, "ig": "https://www.instagram.com/p/DT1XflVEzhG/", "id": 20}, {"name": "ぐでんぐでん", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-1-2 アーク石田ビル 1F", "walk": "学芸大学駅から徒歩3分", "price": "4,000 - 6,000円", "hours": "17:00-00:30", "closed": "日曜日", "desc": "海鮮とおでんがメインの大衆酒場。", "lat": 35.629711, "lng": 139.686096, "ig": "https://www.instagram.com/p/DTyxwKCE4Lp/", "id": 21}, {"name": "やきとり酒場55 京急蒲田店", "area": "蒲田", "cat": "izakaya", "addr": "東京都大田区蒲田4-16-8 リビオ蒲田ザ・ゲート 1F 103", "walk": "京急蒲田駅から徒歩2分", "price": "3,000 - 5,000円", "hours": "月-金・祝前日 15:00-01:00 / 土日祝 12:00-01:00", "closed": "なし", "desc": "蒲田にあるレバーが美味すぎる大衆酒場。昼飲みにも。", "lat": 35.561207, "lng": 139.722397, "ig": "https://www.instagram.com/p/DTwJ6xEk2sQ/", "id": 22}, {"name": "味楽家", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-1-1 石田ビル 2F", "walk": "学芸大学駅から徒歩3分", "price": "3,000 - 5,000円", "hours": "17:00-00:00", "closed": "木曜日", "desc": "家庭的な雰囲気が特徴な大衆焼肉屋。", "lat": 35.629848, "lng": 139.686096, "ig": "https://www.instagram.com/p/DTtjM0qE4pv/", "id": 23}, {"name": "いなせや", "area": "京都駅", "cat": "izakaya", "addr": "京都府京都市下京区東洞院通七条下ル真苧屋町220-8", "walk": "京都駅から徒歩5分", "price": "1,000 - 3,000円", "hours": "火-金 15:00-23:30 / 土日祝 11:30-23:30", "closed": "月曜日", "desc": "京都駅からアクセスが良すぎる大衆立ち飲み酒場。", "lat": 34.989067, "lng": 135.760727, "ig": "https://www.instagram.com/p/DTq7lF2kzV0/", "id": 24}, {"name": "百年蕎麦 壽", "area": "烏丸", "cat": "izakaya", "addr": "京都府京都市中京区御幸町通蛸薬師上ル伊勢屋町354-1", "walk": "烏丸駅から徒歩5分", "price": "3,000 - 5,000円", "hours": "11:30-22:00", "closed": "火曜日", "desc": "繁華街にある立ち飲み蕎麦酒場。", "lat": 35.006771, "lng": 135.76622, "ig": "https://www.instagram.com/p/DToZuPoE68l/", "id": 25}, {"name": "ぽんしゅや 三徳六味 四条烏丸店", "area": "烏丸", "cat": "izakaya", "addr": "京都府京都市下京区綾小路通柳番場西入綾材木町188-5", "walk": "烏丸駅から徒歩5分", "price": "4,000 - 6,000円", "hours": "月-金 18:00-01:00 / 土祝前日 17:00-01:00 / 日祝 17:00-23:00", "closed": "不定休", "desc": "予約必須なほど人気の立ち飲み酒場。", "lat": 35.002388, "lng": 135.76297, "ig": "https://www.instagram.com/p/DTl0UB-kzj4/", "id": 26}, {"name": "スタンドうみねこ コト", "area": "烏丸", "cat": "bar", "addr": "京都府京都市中京区蛸屋町160-3", "walk": "烏丸駅から徒歩5分", "price": "1,000 - 2,000円", "hours": "17:00-23:00", "closed": "不定休", "desc": "街中に突如現れるタップ数の多いスタンドビアバー。", "lat": 35.006298, "lng": 135.766022, "ig": "https://www.instagram.com/p/DTjNorXk_mo/", "id": 27}, {"name": "井倉木材", "area": "丸太町", "cat": "izakaya", "addr": "京都府京都市上京区薮之内町77-1", "walk": "丸太町駅から徒歩15分", "price": "3,000 - 5,000円", "hours": "17:00-22:00", "closed": "日・祝", "desc": "住宅街に潜む独特な立ち飲み酒場。", "lat": 35.021412, "lng": 135.75563, "ig": "https://www.instagram.com/p/DTglh_WE9q7/", "id": 28}, {"name": "鳥岩", "area": "丸太町", "cat": "izakaya", "addr": "京都府京都市上京区奈良物町481", "walk": "丸太町駅から徒歩15分", "price": "3,000 - 5,000円", "hours": "17:30-22:30", "closed": "月・木・日", "desc": "渋すぎる雰囲気が最高な立ち飲み酒場。", "lat": 35.023071, "lng": 135.751617, "ig": "https://www.instagram.com/p/DTeIPXHE9bJ/", "id": 29}, {"name": "利き酒処336", "area": "清水五条", "cat": "bar", "addr": "京都府京都市東山区白糸町572-3", "walk": "清水五条駅から徒歩15分", "price": "2,000 - 3,000円", "hours": "11:00-19:00", "closed": "不定休", "desc": "日本酒やクラフトビールの飲み比べができる和のスタンド酒場。", "lat": 34.99493, "lng": 135.778107, "ig": "https://www.instagram.com/p/DTb0QWak28X/", "id": 30}, {"name": "天風", "area": "代官山", "cat": "izakaya", "addr": "東京都渋谷区猿楽町1-5 代官山ハイム 1F", "walk": "代官山駅から徒歩10分", "price": "2,000 - 3,000円", "hours": "19:00-03:00", "closed": "なし", "desc": "代官山にあるたこ焼き酒場。", "lat": 35.653557, "lng": 139.70491, "ig": "https://www.instagram.com/p/DTRestakwPk/", "id": 31}, {"name": "炭火串焼きと旬野菜 きわみ", "area": "武蔵小杉", "cat": "izakaya", "addr": "神奈川県川崎市中原区小杉町3-430", "walk": "武蔵小杉駅から徒歩3分", "price": "3,000 - 4,000円", "hours": "12:00-03:00", "closed": "なし", "desc": "もつ焼きが食べ放題級の武蔵小杉にあるコスパ最強な大衆酒場。", "lat": 35.574787, "lng": 139.658401, "ig": "https://www.instagram.com/p/DTJZOpMkz93/", "id": 32}, {"name": "颯爽", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区東山1-6-13 リテーラ中目黒 1C", "walk": "中目黒駅から徒歩5分", "price": "3,000 - 4,000円", "hours": "月-金 17:00-23:30 / 土日 15:00-22:30", "closed": "なし", "desc": "カラカゼ系列の立ち飲み酒場。", "lat": 35.645844, "lng": 139.69632, "ig": "https://www.instagram.com/p/DTER0FSk60i/", "id": 33}, {"name": "jin-bay", "area": "野毛", "cat": "izakaya", "addr": "神奈川県横浜市中区野毛町2-64", "walk": "桜木町駅から徒歩5分", "price": "3,000 - 4,000円", "hours": "火-金 17:00-23:00 / 土 15:00-23:00 / 日祝 15:00-21:00", "closed": "月曜日", "desc": "〆で行きたい野毛の大衆立飲み酒場。", "lat": 35.447792, "lng": 139.629669, "ig": "https://www.instagram.com/p/DTB0si1E7NH/", "id": 34}, {"name": "もつしげ", "area": "野毛", "cat": "izakaya", "addr": "神奈川県横浜市中区宮川町2-29", "walk": "桜木町駅から徒歩10分", "price": "3,000 - 4,000円", "hours": "月-金 16:00-23:30 / 土 12:00-23:30 / 日祝 12:00-23:00", "closed": "なし", "desc": "メガハイが99円の野毛の奥にあるもつ焼き酒場。", "lat": 35.446663, "lng": 139.629532, "ig": "https://www.instagram.com/p/DS_G0dKk3uP/", "id": 35}, {"name": "ナカメスタンド", "area": "中目黒", "cat": "bar", "addr": "東京都目黒区上目黒3-7-5 AOIHOUSE NAKAMEGURO S 101", "walk": "中目黒駅から徒歩1分", "price": "3,000 - 5,000円", "hours": "月-木・祝日前後 15:00-03:00 / 金 15:00-05:00 / 土日祝 12:00-03:00", "closed": "なし", "desc": "駅の目の前にあるスタンドバー。", "lat": 35.643883, "lng": 139.698196, "ig": "https://www.instagram.com/p/DS3eSKhkxWb/", "id": 36}, {"name": "直送生ホルモンなかせい", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区青葉台1-23-3", "walk": "中目黒駅から徒歩6分", "price": "3,000 - 5,000円", "hours": "12:00-16:00 / 17:00-23:00", "closed": "年末年始", "desc": "目黒川沿いにある大衆焼肉酒場。お酒のコスパが最強すぎる。", "lat": 35.646763, "lng": 139.697006, "ig": "https://www.instagram.com/p/DUhdCgjk_S8/", "id": 37}, {"id": 38, "name": "鉄砲玉", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-3-19", "walk": "学芸大学駅から徒歩1分", "price": "2,000-5,000円", "hours": "16:00-23:00", "closed": "火・水", "desc": "", "lat": 35.629005, "lng": 139.685745, "ig": "https://www.instagram.com/p/DQ0nINfE1tH/"}, {"id": 39, "name": "匯豐齋（えほうさい）", "area": "祐天寺", "cat": "izakaya", "addr": "東京都目黒区祐天寺2-7-20 倉方ビル1階", "walk": "祐天寺駅から徒歩5分", "price": "2,000-5,000円", "hours": "11:00-14:30/17:30-22:30", "closed": "水曜日", "desc": "", "lat": 35.63644, "lng": 139.694595, "ig": "https://www.instagram.com/p/DQ3SnaJE6iY/"}, {"id": 40, "name": "でん芭", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区中央町1-17-11", "walk": "学芸大学駅から徒歩7分", "price": "2,000-5,000円", "hours": "15:00-22:30", "closed": "水曜日", "desc": "", "lat": 35.628666, "lng": 139.68988, "ig": "https://www.instagram.com/p/DQ8tuKjEa8b/"}, {"id": 41, "name": "ダルマ飯店", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番2-8-20", "walk": "学芸大学駅から徒歩4分", "price": "2,000〜5,000円", "hours": "月〜土17:00〜3:00/日祝15:00〜0:00", "closed": "", "desc": "", "lat": 35.628918, "lng": 139.687958, "ig": "https://www.instagram.com/p/DQOLtxwE2Ww/"}, {"id": 42, "name": "Bob", "area": "祐天寺", "cat": "izakaya", "addr": "東京都目黒区祐天寺2-12-21 香村ビル2F", "walk": "祐天寺駅から徒歩1分", "price": "3,000〜6,000円", "hours": "月〜木17:00〜24:00/金17:00〜25:00/土15:00〜25:00/日祝15:00〜24:00", "closed": "", "desc": "", "lat": 35.637508, "lng": 139.69165, "ig": "https://www.instagram.com/p/DQTYAcrk3IG/"}, {"id": 43, "name": "初場所", "area": "祐天寺", "cat": "izakaya", "addr": "東京都目黒区祐天寺2-14-7 AI祐天寺ビル1F", "walk": "祐天寺駅から徒歩1分", "price": "3,000〜6,000円", "hours": "16:00〜23:30（月曜定休日）", "closed": "", "desc": "", "lat": 35.636887, "lng": 139.691177, "ig": "https://www.instagram.com/p/DQWbi0Lk1NN/"}, {"id": 44, "name": "のげちゃん", "area": "野毛", "cat": "izakaya", "addr": "神奈川県横浜市中区花咲町2-62 平井ビル", "walk": "桜木町駅から徒歩1分", "price": "2,000-4,000円", "hours": "11:30-23:30", "closed": "なし", "desc": "", "lat": 35.449665, "lng": 139.629333, "ig": "https://www.instagram.com/p/DQiTBlmE2C0/"}, {"id": 45, "name": "野毛ごえん", "area": "野毛", "cat": "izakaya", "addr": "神奈川県横浜市中区宮川町1-4 1F", "walk": "桜木町駅から徒歩8分", "price": "2,000-3,000円", "hours": "平日17:00-00:00/土12:00-00:00/日祝12:00-23:00", "closed": "なし", "desc": "", "lat": 35.446289, "lng": 139.629456, "ig": "https://www.instagram.com/p/DQlOym9E0Rt/"}, {"id": 46, "name": "野毛☆大夢", "area": "野毛", "cat": "izakaya", "addr": "神奈川県横浜市中区野毛町2-79", "walk": "桜木町駅から徒歩7分", "price": "2,000-3,000円", "hours": "月-土13:00-23:00/日祝13:00-22:00", "closed": "不定休", "desc": "", "lat": 35.447273, "lng": 139.629349, "ig": "https://www.instagram.com/p/DQncGGlkxAV/"}, {"id": 47, "name": "立ち寿司横丁(実際は新宿)", "area": "野毛", "cat": "izakaya", "addr": "東京都新宿区西新宿1-18-13 近江ビル1F", "walk": "新宿駅から徒歩5分", "price": "2,000-3,000円", "hours": "11:30-22:30", "closed": "なし", "desc": "", "lat": 35.688801, "lng": 139.697922, "ig": "https://www.instagram.com/p/DQqEKA_E8ht/"}, {"id": 48, "name": "西口アオギリ", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-14-5", "walk": "学芸大学駅から徒歩2分", "price": "2,000-4,000円", "hours": "17:30-00:30", "closed": "なし", "desc": "", "lat": 35.629547, "lng": 139.684372, "ig": "https://www.instagram.com/p/DQslf0bkxdO/"}, {"id": 49, "name": "警視鳥", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-18-21 ツインタウン学芸大学2F", "walk": "学芸大学駅から徒歩3分", "price": "3,000-5,000円", "hours": "17:00-23:00", "closed": "不定休", "desc": "", "lat": 35.629318, "lng": 139.683243, "ig": "https://www.instagram.com/p/DQx-50XE8e_/"}, {"id": 50, "name": "豚足のかどや", "area": "難波", "cat": "izakaya", "addr": "大阪府大阪市浪速区難波中1-4-15 南松竹マンション1F", "walk": "難波駅から徒歩4分", "price": "1,000-3,000円", "hours": "11:00-22:00", "closed": "なし", "desc": "", "lat": 34.66544, "lng": 135.498337, "ig": "https://www.instagram.com/p/DR0leTMk6Ks/"}, {"id": 51, "name": "魚屋ひでぞう 立ち呑み店", "area": "難波", "cat": "izakaya", "addr": "大阪府大阪市中央区難波千日前9-1", "walk": "難波駅から徒歩4分", "price": "3,000-5,000円", "hours": "17:00-00:00", "closed": "水曜日", "desc": "", "lat": 34.664459, "lng": 135.503983, "ig": "https://www.instagram.com/p/DR3a0e0E7bL/"}, {"id": 52, "name": "もつ酒場 えぶりばでぃ", "area": "難波", "cat": "izakaya", "addr": "大阪府大阪市中央区難波千日前9-4", "walk": "難波駅から徒歩5分", "price": "2,000-4,000円", "hours": "17:00-00:00", "closed": "月曜日", "desc": "", "lat": 34.664181, "lng": 135.504013, "ig": "https://www.instagram.com/p/DR5kW7yE9De/"}, {"id": 53, "name": "酒の奥田", "area": "天満", "cat": "izakaya", "addr": "大阪府大阪市北区天神橋4-12-22", "walk": "天満駅から徒歩1分", "price": "1,000-3,000円", "hours": "10:00-13:00/15:00-21:00", "closed": "日・祝", "desc": "", "lat": 34.705944, "lng": 135.512024, "ig": "https://www.instagram.com/p/DR8kWW-E52i/"}, {"id": 54, "name": "大衆酒場 チャン栓チャン", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒2-1-3 GTテラス2F", "walk": "中目黒駅から徒歩3分", "price": "2,000-5,000円", "hours": "月-金17:00-23:30/土日祝15:00-23:30", "closed": "不定休", "desc": "", "lat": 35.643791, "lng": 139.699509, "ig": "https://www.instagram.com/p/DRBShUBE2xB/"}, {"id": 55, "name": "YONA YONA BEER WORKS 青山店", "area": "表参道", "cat": "bar", "addr": "東京都港区南青山3-18-20 松本ビルB1F", "walk": "表参道駅から徒歩1分", "price": "2,000-5,000円", "hours": "月-金16:00-23:00/土日祝11:30-23:00", "closed": "不定休", "desc": "", "lat": 35.665047, "lng": 139.713303, "ig": "https://www.instagram.com/p/DRGOOJik8hY/"}, {"id": 56, "name": "BAR&DELI ROSSELLO", "area": "学芸大学", "cat": "bar", "addr": "東京都目黒区鷹番3-14-6", "walk": "学芸大学駅から徒歩3分", "price": "3,000-6,000円", "hours": "月・水・木・金17:00-00:00/火17:30-24:00/土日祝12:00-14:30 17:00-00:00", "closed": "不定休", "desc": "", "lat": 35.629414, "lng": 139.684357, "ig": "https://www.instagram.com/p/DRMAL2Tk237/"}, {"id": 57, "name": "潮騒", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-1-4 1F", "walk": "学芸大学駅から徒歩1分", "price": "3,000-6,000円", "hours": "月火水木日祝12:00-23:00/金土12:00-23:30", "closed": "年末年始", "desc": "", "lat": 35.629452, "lng": 139.686066, "ig": "https://www.instagram.com/p/DRN_cptk3cV/"}, {"id": 58, "name": "せぼん", "area": "祐天寺", "cat": "izakaya", "addr": "東京都目黒区祐天寺2-4-14", "walk": "祐天寺駅から徒歩2分", "price": "3,000-6,000円", "hours": "月・火・水・木・日・祝日18:00-24:00/金・土18:00-25:00", "closed": "なし", "desc": "", "lat": 35.637119, "lng": 139.692673, "ig": "https://www.instagram.com/p/DRQdzuMk2ok/"}, {"id": 59, "name": "立呑 富士屋本店", "area": "渋谷", "cat": "izakaya", "addr": "東京都渋谷区桜丘町16-10", "walk": "渋谷駅から徒歩5分", "price": "2,000-5,000円", "hours": "月-金17:00-22:30/土16:00-22:00/日・祝16:00-21:00", "closed": "不定休", "desc": "", "lat": 35.656651, "lng": 139.700974, "ig": "https://www.instagram.com/p/DRVh0ZSEy3V/"}, {"id": 60, "name": "恋文酒場 かっぱ", "area": "渋谷", "cat": "izakaya", "addr": "東京都渋谷区道玄坂1-5-9 レンガビル1F", "walk": "渋谷駅から徒歩3分", "price": "2,000-5,000円", "hours": "月-土17:00-04:00/日・祝15:00-23:00", "closed": "なし", "desc": "", "lat": 35.658249, "lng": 139.699356, "ig": "https://www.instagram.com/p/DRYD9pLk9OL/"}, {"id": 61, "name": "マルフク", "area": "西成", "cat": "izakaya", "addr": "大阪府大阪市西成区太子1-6-16", "walk": "動物園前駅から徒歩3分", "price": "1,000-3,000円", "hours": "08:00-22:30", "closed": "なし", "desc": "", "lat": 34.64785, "lng": 135.503326, "ig": "https://www.instagram.com/p/DR_RhERE1ol/"}, {"id": 62, "name": "肴処 新天地", "area": "三軒茶屋", "cat": "izakaya", "addr": "東京都世田谷区太子堂4-27-10 1F", "walk": "三軒茶屋駅から徒歩3分", "price": "2,000-5,000円", "hours": "火・水・木・日18:00-00:00/金・土・祝前日18:00-01:00", "closed": "月曜日", "desc": "", "lat": 35.645687, "lng": 139.670166, "ig": "https://www.instagram.com/p/DRa31v-E4sZ/"}, {"id": 63, "name": "ザ・銀皿", "area": "池尻大橋", "cat": "izakaya", "addr": "東京都目黒区東山3-6-15 エビヤビル4F", "walk": "池尻大橋駅から徒歩5分", "price": "2,000-4,000円", "hours": "19:00-26:00", "closed": "火曜日", "desc": "", "lat": 35.650181, "lng": 139.686768, "ig": "https://www.instagram.com/p/DRdavblk0ij/"}, {"id": 64, "name": "Andiamo all' Uscita", "area": "高円寺", "cat": "izakaya", "addr": "東京都杉並区高円寺北3-22-5 2F", "walk": "高円寺駅から徒歩3分", "price": "2,000-4,000円", "hours": "月-土11:00-22:30/日10:00-17:00", "closed": "不定休", "desc": "", "lat": 35.705685, "lng": 139.648682, "ig": "https://www.instagram.com/p/DRf_pOKk3W_/"}, {"id": 65, "name": "立ち呑み酒場 ももや", "area": "高円寺", "cat": "izakaya", "addr": "東京都杉並区高円寺南4-26-16 B1F", "walk": "高円寺駅から徒歩3分", "price": "2,000-3,000円", "hours": "16:00-24:00", "closed": "なし", "desc": "", "lat": 35.704582, "lng": 139.649536, "ig": "https://www.instagram.com/p/DRiokyWk2xF/"}, {"id": 66, "name": "立ち呑み 亜時戸", "area": "高円寺", "cat": "izakaya", "addr": "東京都杉並区高円寺南3-69-1", "walk": "高円寺駅から徒歩2分", "price": "2,000-5,000円", "hours": "月-金15:00-24:00/土・日14:00-23:00", "closed": "なし", "desc": "", "lat": 35.70525, "lng": 139.648392, "ig": "https://www.instagram.com/p/DRk_vpkk6AI/"}, {"id": 67, "name": "焼肉ショップまんちい2", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区中央町2-37-1 ディアーC1学芸大学1F", "walk": "学芸大学駅から徒歩7分", "price": "5,000-8,000円", "hours": "月-土18:00-26:00/日・祝18:00-24:00", "closed": "なし", "desc": "", "lat": 35.632042, "lng": 139.686539, "ig": "https://www.instagram.com/p/DRnldJaEoEo/"}, {"id": 68, "name": "好香味坊", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-3-2", "walk": "学芸大学駅から徒歩1分", "price": "1,000-3,000円", "hours": "月11:00-15:00 17:00-23:00/火-金11:00-15:00 17:00-23:00/土・日11:00-23:00/祝日11:00-23:00", "closed": "なし", "desc": "", "lat": 35.628796, "lng": 139.685974, "ig": "https://www.instagram.com/p/DRqQskLk238/"}, {"id": 69, "name": "だしともんじゃ", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-8-3 与志田ビル1F", "walk": "学芸大学駅から徒歩1分", "price": "3,000-6,000円", "hours": "17:00-23:00", "closed": "なし", "desc": "", "lat": 35.62962, "lng": 139.685577, "ig": "https://www.instagram.com/p/DRvWA4cE8nd/"}, {"id": 70, "name": "トロ政", "area": "日比谷", "cat": "izakaya", "addr": "東京都千代田区有楽町1-2-10 錦ビル1F・B1F", "walk": "日比谷駅から徒歩1分", "price": "3,000-6,000円", "hours": "月・火・水・木・日・祝日11:30-00:00/金・土・祝前日11:30-04:30", "closed": "なし", "desc": "", "lat": 35.672695, "lng": 139.760254, "ig": "https://www.instagram.com/p/DRyRJXQkzkx/"}, {"id": 71, "name": "大阪焼肉・ホルモン ふたご 中目黒本館", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒3-14-5 ティグリス中目黒Ⅱ1F", "walk": "中目黒駅から徒歩3分", "price": "4,000-6,000円", "hours": "月-金17:00-00:00/土12:00-23:30/日・祝日17:00-23:30", "closed": "年末年始", "desc": "", "lat": 35.645725, "lng": 139.697083, "ig": "https://www.instagram.com/p/DS1ajBIkfSO/"}, {"id": 72, "name": "八重勝", "area": "新世界", "cat": "izakaya", "addr": "大阪府大阪市浪速区恵美須東3-4-13", "walk": "動物園前駅から徒歩3分", "price": "2,000-4,000円", "hours": "10:30-20:30", "closed": "木曜日", "desc": "", "lat": 34.649689, "lng": 135.506042, "ig": "https://www.instagram.com/p/DSBe3bkE4J0/"}, {"id": 73, "name": "呑家", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番2-20-19 そしある学芸大学1F", "walk": "学芸大学駅から徒歩3分", "price": "2,000-4,000円", "hours": "18:00-25:00", "closed": "なし", "desc": "", "lat": 35.629875, "lng": 139.6866, "ig": "https://www.instagram.com/p/DSESuKFE5Mt/"}, {"id": 74, "name": "のみしろ", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒3-16-4 山下ビル1F", "walk": "中目黒駅から徒歩5分", "price": "3,000-5,000円", "hours": "18:00-25:00", "closed": "日曜日", "desc": "", "lat": 35.645844, "lng": 139.696121, "ig": "https://www.instagram.com/p/DSGcw4kEzse/"}, {"id": 75, "name": "風見堂", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒3-1-14 メイツ中目黒1F", "walk": "中目黒駅から徒歩3分", "price": "2,000-4,000円", "hours": "17:00-24:00", "closed": "不定休", "desc": "", "lat": 35.645435, "lng": 139.697174, "ig": "https://www.instagram.com/p/DSJNmMcEy79/"}, {"id": 76, "name": "無添蔵", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒3-7-11 松村ビル2F", "walk": "中目黒駅から徒歩1分", "price": "3,000-4,000円", "hours": "11:00-24:00", "closed": "なし", "desc": "", "lat": 35.644192, "lng": 139.698013, "ig": "https://www.instagram.com/p/DSLpGaTk9P1/"}, {"id": 77, "name": "鶏と魚と炭火焼き 燈", "area": "下北沢", "cat": "izakaya", "addr": "東京都世田谷区北沢2-13-4 第2伊奈ビル1F", "walk": "下北沢駅から徒歩3分", "price": "4,000-6,000円", "hours": "月-金16:00-00:00/土14:00-00:00/日・祝日14:00-23:00", "closed": "不定休", "desc": "", "lat": 35.660366, "lng": 139.667496, "ig": "https://www.instagram.com/p/DSRPZhnE7SB/"}, {"id": 78, "name": "路地うぶ", "area": "下北沢", "cat": "izakaya", "addr": "東京都世田谷区北沢2-15-10 アヴニールビル1F", "walk": "下北沢駅から徒歩3分", "price": "3,000-5,000円", "hours": "月-金18:00-24:00/土・日・祝日17:00-24:00", "closed": "不定休", "desc": "", "lat": 35.659874, "lng": 139.666687, "ig": "https://www.instagram.com/p/DSTfYVCk795/"}, {"id": 79, "name": "PODUNK", "area": "代々木公園", "cat": "izakaya", "addr": "東京都渋谷区富ヶ谷1-44-1 ロイヤルタワー代々木公園1F", "walk": "代々木公園駅から徒歩3分", "price": "3,000-5,000円", "hours": "火・水・金・祝日18:00-00:00/土・日17:00-00:00", "closed": "月・木", "desc": "", "lat": 35.668613, "lng": 139.689865, "ig": "https://www.instagram.com/p/DSV57TsE6Jm/"}, {"id": 80, "name": "IKUTA", "area": "新宿", "cat": "izakaya", "addr": "東京都新宿区西新宿1-11-12 生田ビル1F", "walk": "新宿駅から徒歩5分", "price": "3,000-5,000円", "hours": "月-金17:00-23:30/土・日14:00-23:30/祝日15:00-23:30", "closed": "なし", "desc": "", "lat": 35.690048, "lng": 139.697647, "ig": "https://www.instagram.com/p/DSjlNdBkSC0/"}, {"id": 81, "name": "ひなどり", "area": "新宿", "cat": "izakaya", "addr": "東京都新宿区西新宿1-16-8", "walk": "新宿駅から徒歩5分", "price": "2,000-4,000円", "hours": "16:00-24:00", "closed": "なし", "desc": "", "lat": 35.689007, "lng": 139.697617, "ig": "https://www.instagram.com/p/DSloaiXk956/"}, {"id": 82, "name": "徳田酒店", "area": "有楽町", "cat": "sakaya", "addr": "東京都千代田区有楽町2-10-1 東京交通会館B1F", "walk": "有楽町駅から徒歩3分", "price": "2,000-4,000円", "hours": "11:00-23:00", "closed": "年末年始", "desc": "", "lat": 35.674953, "lng": 139.764359, "ig": "https://www.instagram.com/p/DSn9i_dk9PV/"}, {"id": 83, "name": "バル デ オピンチョ", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番2-20-19 コーラルかりゆし1F", "walk": "学芸大学駅から徒歩3分", "price": "2,000-4,000円", "hours": "月-金17:00-25:00/土13:00-25:00/日・祝日13:00-00:00", "closed": "なし", "desc": "", "lat": 35.629875, "lng": 139.6866, "ig": "https://www.instagram.com/p/DSqtZoaE3do/"}, {"id": 84, "name": "オモウツボ", "area": "三軒茶屋", "cat": "izakaya", "addr": "東京都世田谷区三軒茶屋2-13-19", "walk": "三軒茶屋駅から徒歩2分", "price": "3,000-5,000円", "hours": "月-土18:00-02:00/日・祝日17:00-00:00", "closed": "なし", "desc": "", "lat": 35.642975, "lng": 139.670364, "ig": "https://www.instagram.com/p/DStxFMUkfBT/"}, {"id": 85, "name": "遊和食 きときと", "area": "千歳烏山", "cat": "izakaya", "addr": "東京都世田谷区南烏山5-32-6 サンマルシェⅢ B1F", "walk": "千歳烏山駅から徒歩3分", "price": "5,000-7,000円", "hours": "月-木17:30-23:30/金17:30-00:00 土・日・祝日16:30-00:00", "closed": "不定休", "desc": "", "lat": 35.666874, "lng": 139.60054, "ig": "https://www.instagram.com/p/DV73OTsGDw8/"}, {"id": 86, "name": "SAKASA", "area": "千歳烏山", "cat": "izakaya", "addr": "東京都世田谷区南烏山6-6-24", "walk": "千歳烏山駅から徒歩1分", "price": "2,000-3,000円", "hours": "17:00-00:00", "closed": "なし", "desc": "", "lat": 35.66819, "lng": 139.599701, "ig": "https://www.instagram.com/p/DV94p2BE-5f/"}, {"id": 87, "name": "えびす駄菓子バー", "area": "恵比寿", "cat": "bar", "addr": "東京都渋谷区恵比寿西1-13-7", "walk": "恵比寿駅から徒歩5分", "price": "3,000-5,000円", "hours": "火-金17:00-23:30/土・日・祝日15:00-23:30", "closed": "月曜日", "desc": "", "lat": 35.647564, "lng": 139.707611, "ig": "https://www.instagram.com/p/DVNOMvoE0L8/"}, {"id": 88, "name": "魚草", "area": "上野", "cat": "izakaya", "addr": "東京都台東区上野6-10-7 アメ横プラザ", "walk": "上野駅から徒歩5分", "price": "2,000-4,000円", "hours": "12:00-19:30", "closed": "第2水曜", "desc": "", "lat": 35.709587, "lng": 139.774704, "ig": "https://www.instagram.com/p/DVSQ7Wck6GS/"}, {"id": 89, "name": "月島もんじゃ 三九 上野総本店", "area": "上野", "cat": "izakaya", "addr": "東京都台東区上野4-7-2 日拓ビル上野アメ横1F", "walk": "上野駅から徒歩5分", "price": "2,000-4,000円", "hours": "日-木11:00-23:00/金・土・祝前日11:00-00:00", "closed": "なし", "desc": "", "lat": 35.709049, "lng": 139.774475, "ig": "https://www.instagram.com/p/DVUlxJOE_cs/"}, {"id": 90, "name": "ワインバル 八十郎", "area": "上野", "cat": "bar", "addr": "東京都台東区上野3-22-3 ジイドビル1F", "walk": "御徒町駅から徒歩1分", "price": "2,000-4,000円", "hours": "月-木17:00-23:30/金17:00-02:00/土16:00-23:30/日・祝日16:00-23:00", "closed": "年末年始", "desc": "", "lat": 35.706276, "lng": 139.773468, "ig": "https://www.instagram.com/p/DVXhn_4E6PR/"}, {"id": 91, "name": "浅草焼鳥酒場 コケコッコー", "area": "浅草", "cat": "izakaya", "addr": "東京都台東区浅草3-15-8", "walk": "浅草駅から徒歩10分", "price": "3,000-5,000円", "hours": "火-土18:00-03:00/日13:00-00:00", "closed": "月曜日", "desc": "", "lat": 35.717804, "lng": 139.793793, "ig": "https://www.instagram.com/p/DVZys2_E8QD/"}, {"id": 92, "name": "正ちゃん", "area": "浅草", "cat": "izakaya", "addr": "東京都台東区浅草2-7-13", "walk": "浅草駅から徒歩3分", "price": "2,000-4,000円", "hours": "12:00-21:00", "closed": "月火", "desc": "", "lat": 35.714573, "lng": 139.794113, "ig": "https://www.instagram.com/p/DVfA9EmE7nJ/"}, {"id": 93, "name": "松よし", "area": "浅草", "cat": "izakaya", "addr": "東京都台東区浅草2-7-21", "walk": "浅草駅から徒歩5分", "price": "2,000-4,000円", "hours": "月-金10:00-17:00/土日08:00-17:00", "closed": "なし", "desc": "", "lat": 35.715202, "lng": 139.794373, "ig": "https://www.instagram.com/p/DVhhmdpk67-/"}, {"id": 94, "name": "暴飲暴食", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒2-7-11 2F～4F", "walk": "中目黒駅から徒歩5分", "price": "8,000-9,000円", "hours": "17:00-23:00", "closed": "不定休", "desc": "", "lat": 35.642918, "lng": 139.699219, "ig": "https://www.instagram.com/p/DVpnC4zkTpM/"}, {"id": 95, "name": "居酒屋 黒電話", "area": "恵比寿", "cat": "sakaya", "addr": "東京都渋谷区恵比寿4-23-12 茗荷原ビル2F", "walk": "恵比寿駅から徒歩7分", "price": "5,000-8,000円", "hours": "17:00-00:00", "closed": "なし", "desc": "", "lat": 35.644619, "lng": 139.715347, "ig": "https://www.instagram.com/p/DW0Ifi6p5LP/"}, {"id": 96, "name": "まこちゃん", "area": "中目黒", "cat": "izakaya", "addr": "東京都目黒区上目黒3-6-18 TYビル1F", "walk": "中目黒駅から徒歩2分", "price": "3,000-4,000円", "hours": "月-金11:30-14:30 17:00-23:00/土16:00-23:00/日・祝16:00-22:30", "closed": "不定休", "desc": "", "lat": 35.643135, "lng": 139.696869, "ig": "https://www.instagram.com/p/DWNvXhHEVUv/"}, {"id": 97, "name": "朝から居酒屋 陽のうえ", "area": "高円寺", "cat": "sakaya", "addr": "東京都杉並区高円寺北3-22-12 第六東和ビル3F", "walk": "高円寺駅から徒歩3分", "price": "3,000-4,000円", "hours": "07:00-17:00", "closed": "不定休", "desc": "", "lat": 35.706245, "lng": 139.649368, "ig": "https://www.instagram.com/p/DWPyWfEE4IJ/"}, {"id": 98, "name": "立ち呑みスタンド とれまろ", "area": "高円寺", "cat": "izakaya", "addr": "東京都杉並区高円寺北3-22-3 松原ビル1F", "walk": "高円寺駅から徒歩1分", "price": "1,000-2,000円", "hours": "15:00-00:00", "closed": "不定休", "desc": "", "lat": 35.705551, "lng": 139.648941, "ig": "https://www.instagram.com/p/DWSjFc3E7al/"}, {"id": 99, "name": "大黒", "area": "高円寺", "cat": "izakaya", "addr": "東京都杉並区高円寺南3-70-9 高円寺マシタ", "walk": "高円寺駅から徒歩1分", "price": "2,000-5,000円", "hours": "12:00-23:00", "closed": "なし", "desc": "", "lat": 35.705254, "lng": 139.648987, "ig": "https://www.instagram.com/p/DWXXhprE4ui/"}, {"id": 100, "name": "リバーサイドヤオヤ", "area": "池尻大橋", "cat": "bar", "addr": "東京都目黒区東山3-1-3 1F", "walk": "池尻大橋駅から徒歩2分", "price": "4,000-7,000円", "hours": "月-金15:00-00:00/土・日13:00-00:00/祝日17:00-00:00", "closed": "なし", "desc": "", "lat": 35.650936, "lng": 139.686157, "ig": "https://www.instagram.com/p/DWfthKVmPFK/"}, {"id": 101, "name": "Tacos 3 Hermanos Ebisu", "area": "恵比寿", "cat": "izakaya", "addr": "東京都渋谷区広尾1-16-1 恵比寿広尾スクエアビル1F", "walk": "恵比寿駅から徒歩5分", "price": "2,000-4,000円", "hours": "11:00-15:30/17:00-21:30", "closed": "月曜日", "desc": "", "lat": 35.648655, "lng": 139.711014, "ig": "https://www.instagram.com/p/DWvWlijDgYC/"}, {"id": 102, "name": "ひろけい", "area": "野毛", "cat": "izakaya", "addr": "神奈川県横浜市中区野毛町1-31-1 Aperio B棟101号室", "walk": "桜木町駅から徒歩5分", "price": "1,000-4,000円", "hours": "14:00-22:00", "closed": "木曜日", "desc": "", "lat": 35.448307, "lng": 139.630829, "ig": "https://www.instagram.com/p/DXDxg3hFC-C/"}, {"id": 103, "name": "平戸庵", "area": "野毛", "cat": "izakaya", "addr": "神奈川県横浜市中区花咲町1-20", "walk": "桜木町駅から徒歩2分", "price": "3,000-5,000円", "hours": "11:30-19:00", "closed": "日曜日", "desc": "", "lat": 35.448635, "lng": 139.631287, "ig": "https://www.instagram.com/p/DXGUVK-jiOX/"}, {"id": 104, "name": "おしお", "area": "月島", "cat": "izakaya", "addr": "東京都中央区月島1-20-4", "walk": "月島駅から徒歩2分", "price": "2,000-5,000円", "hours": "12:00-23:00", "closed": "なし", "desc": "", "lat": 35.664082, "lng": 139.782059, "ig": "https://www.instagram.com/p/DXWJ1WuD5q9/"}, {"id": 105, "name": "月島蕎麦", "area": "月島", "cat": "izakaya", "addr": "東京都中央区月島1-6-12", "walk": "月島駅から徒歩圏内", "price": "不明", "hours": "不明", "closed": "不明", "desc": "", "lat": 35.664345, "lng": 139.782623, "ig": "https://www.instagram.com/p/DXbIgK5jM8z/"}, {"id": 106, "name": "飯と酒 Toritoco（トリトコ）", "area": "月島", "cat": "izakaya", "addr": "東京都中央区月島1-19-4", "walk": "月島駅7番・8a番出口から徒歩1分", "price": "不明", "hours": "不明", "closed": "不明", "desc": "", "lat": 35.664253, "lng": 139.782303, "ig": "https://www.instagram.com/p/DXdOCRCFpJW/"}, {"id": 107, "name": "野菜巻き串 薄田商店 学芸大学店", "area": "学芸大学", "cat": "izakaya", "addr": "東京都目黒区鷹番3-7-4", "walk": "学芸大学駅から徒歩圏内", "price": "不明", "hours": "不明", "closed": "不明", "desc": "", "lat": 35.629608, "lng": 139.685043, "ig": "https://www.instagram.com/p/DXf0TiMDcXZ/"}, {"id": 108, "name": "牡蠣海鮮料理 かき家 こだはる 新橋店", "area": "新橋", "cat": "izakaya", "addr": "東京都港区新橋3-8-8 神野ビル2F", "walk": "新橋駅から徒歩3分", "price": "5,000-8,000円", "hours": "17:00-22:30", "closed": "日曜日", "desc": "", "lat": 35.665497, "lng": 139.755478, "ig": "https://www.instagram.com/p/DZb4jOIBiHr/"}, {"id": 109, "name": "外呑処へそ新橋0号店 西成ホルモン焼き", "area": "新橋", "cat": "izakaya", "addr": "東京都港区新橋3-12-3 アスティル新橋ビル1F", "walk": "新橋駅から徒歩1分", "price": "1,000-3,000円", "hours": "月-土12:00-04:30/日12:00-00:00", "closed": "なし", "desc": "", "lat": 35.66605, "lng": 139.756363, "ig": "https://www.instagram.com/p/DZgpx02BsrJ/"}];
@@ -591,13 +628,16 @@ function openDetail(id){
     ${s.desc ? `<p class="detail-desc">${escapeHtml(s.desc)}</p>` : ''}
     <div class="info">${rows}</div>
     <div class="detail-actions">
+      <button class="btn ${visits.has(s.id) ? 'btn-primary' : 'btn-secondary'}" id="detailVisit"><i class="${visits.has(s.id) ? 'ri-footprint-fill' : 'ri-footprint-line'}"></i>${visits.has(s.id) ? '行った（記録済み）' : '行った！'}</button>
       <button class="btn btn-main" id="detailShowMap"><i class="ri-map-2-line"></i>地図で見る</button>
       ${s.ig ? `<a class="btn btn-primary" href="${escapeHtml(s.ig)}" target="_blank" rel="noopener">${IG_LOGO}Instagramで見る</a>` : ''}
       <a class="btn btn-secondary" href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener"><i class="ri-navigation-line"></i>Googleマップで開く</a>
     </div>
+    ${visits.get(s.id)?.ig ? `<a class="visit-ig" href="${escapeHtml(visits.get(s.id).ig)}" target="_blank" rel="noopener">${IG_LOGO}あなたのInstagram投稿</a>` : ''}
     ${s.userPosted ? `<div class="posted-by"><i class="ri-user-3-line"></i>${escapeHtml(s.createdByName || 'ユーザー')}さんが掲載</div>` : ''}
     ${canDelete(s) ? `<button class="danger-btn" id="detailDelete">この投稿を削除する</button>` : ''}`;
   if(canDelete(s)) $('detailDelete').addEventListener('click', ()=> deleteShop(s));
+  $('detailVisit').addEventListener('click', ()=> openVisitSheet(s));
   $('detailShowMap').addEventListener('click', ()=>{
     closeDetail();
     showView('map', true);
@@ -862,6 +902,146 @@ function submitPost(){
   });
 }
 
+/* ---------- 行った記録（Instagramの投稿URLを紐づけられる） ---------- */
+let visitShop = null;
+function openSheet(id){ $('sheetBackdrop').classList.add('open'); $(id).classList.add('open'); }
+function closeSheets(){
+  $('sheetBackdrop').classList.remove('open');
+  document.querySelectorAll('.bsheet').forEach(b=> b.classList.remove('open'));
+}
+$('sheetBackdrop').addEventListener('click', closeSheets);
+
+function openVisitSheet(s){
+  if(!currentUser){ showToast('記録するにはログインしてください'); return; }
+  visitShop = s;
+  const v = visits.get(s.id);
+  $('visitTitle').textContent = `「${s.name}」に行った`;
+  $('visitIg').value = v?.ig || '';
+  $('visitSave').innerHTML = v ? '<i class="ri-footprint-fill"></i>記録を更新する' : '<i class="ri-footprint-line"></i>行ったに記録する';
+  $('visitRemove').hidden = !v;
+  openSheet('visitSheet');
+}
+$('visitSave').addEventListener('click', ()=>{
+  const s = visitShop;
+  if(!s || !currentUser) return;
+  const ig = normalizeIg($('visitIg').value);
+  if(ig===null){ showToast('InstagramのURLを確認してください'); return; }
+  const prev = visits.get(s.id);
+  const data = {shopId: s.id, visitedAt: prev?.visitedAt || firebase.firestore.FieldValue.serverTimestamp()};
+  if(ig) data.ig = ig;
+  db.collection('users').doc(currentUser.uid).collection('visits').doc(s.id).set(data).then(()=>{
+    visits.set(s.id, Object.assign({}, data, {visitedAt: prev?.visitedAt || {seconds: Date.now()/1000}}));
+    closeSheets();
+    showToast(prev ? '記録を更新しました' : '行ったに記録しました');
+    if(detailId===s.id) openDetail(s.id);
+    renderMypage();
+  }).catch(()=> showToast('記録できませんでした'));
+});
+$('visitRemove').addEventListener('click', ()=>{
+  const s = visitShop;
+  if(!s || !currentUser) return;
+  db.collection('users').doc(currentUser.uid).collection('visits').doc(s.id).delete().then(()=>{
+    visits.delete(s.id);
+    closeSheets();
+    showToast('記録を消しました');
+    if(detailId===s.id) openDetail(s.id);
+    renderMypage();
+  }).catch(()=> showToast('消せませんでした'));
+});
+
+/* ---------- 記録のシェア画像（1080×1920、ストーリー用） ----------
+   canvasに描くのでアイコンフォントは使わない（MACROHACKのルールと同じ） */
+const SITE_URL = 'https://shiryu-takahashi-0112.github.io/osakenomitai/';
+let shareBlob = null;
+
+function topAreas(){
+  const count = {};
+  myVisits().concat(myPosts()).forEach(s=>{ if(s.area) count[s.area] = (count[s.area]||0) + 1; });
+  return Object.entries(count).sort((a,b)=> b[1]-a[1]).slice(0, 3).map(e=> e[0]);
+}
+
+async function drawShareImage(){
+  await document.fonts.load('900 100px "Zen Kaku Gothic New"').catch(()=>{});
+  await document.fonts.load('700 40px "Zen Kaku Gothic New"').catch(()=>{});
+  const W = 1080, H = 1920, F = '"Zen Kaku Gothic New", sans-serif';
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+
+  g.fillStyle = '#F2C600';
+  g.fillRect(0, 0, W, H);
+
+  // ロゴ（ページ内のSVGをそのまま画像にする）
+  const svg = document.querySelector('.map-logo .logo-mark').outerHTML
+    .replace('<svg', '<svg width="800" height="124"').replace(/<path /g, '<path fill="#121212" ');
+  const logo = new Image();
+  logo.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  await logo.decode().catch(()=>{});
+  g.drawImage(logo, 140, 200, 800, 124);
+
+  g.fillStyle = '#121212';
+  g.textAlign = 'center';
+  g.font = `700 44px ${F}`;
+  const name = (currentUser.displayName || 'わたし').slice(0, 16);
+  g.fillText(`${name}さんの酒場記録`, W/2, 470);
+
+  // 数字のカード
+  const card = (y, label, num) => {
+    g.fillStyle = '#ffffff';
+    g.beginPath(); g.roundRect(120, y, W-240, 330, 40); g.fill();
+    g.fillStyle = '#121212';
+    g.font = `700 46px ${F}`;
+    g.fillText(label, W/2, y + 100);
+    g.font = `900 180px ${F}`;
+    const numW = g.measureText(String(num)).width;
+    g.fillText(String(num), W/2 - 40, y + 275);
+    g.font = `900 64px ${F}`;
+    g.textAlign = 'left';
+    g.fillText('軒', W/2 - 40 + numW/2 + 16, y + 275);
+    g.textAlign = 'center';
+  };
+  card(560, '地図に掲載した酒場', myPosts().length);
+  card(930, '行った酒場', visits.size);
+
+  const areas = topAreas();
+  if(areas.length){
+    g.font = `700 40px ${F}`;
+    g.fillText('よく飲むエリア', W/2, 1400);
+    g.font = `900 64px ${F}`;
+    g.fillText(areas.join('・'), W/2, 1490);
+  }
+
+  g.font = `700 36px ${F}`;
+  g.fillText('みんなで埋める酒場の地図', W/2, 1720);
+  g.font = `500 30px ${F}`;
+  g.fillText(SITE_URL.replace('https://', ''), W/2, 1780);
+
+  return new Promise(res=> c.toBlob(res, 'image/png'));
+}
+
+async function openShareSheet(){
+  if(!currentUser) return;
+  shareBlob = null;
+  $('shareImg').removeAttribute('src');
+  const text = `オサケノミタイ地図で、酒場を${myPosts().length}軒掲載して、${visits.size}軒に行きました。`;
+  $('shareX').href = 'https://x.com/intent/post?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(SITE_URL);
+  openSheet('shareSheet');
+  shareBlob = await drawShareImage();
+  if(shareBlob) $('shareImg').src = URL.createObjectURL(shareBlob);
+}
+$('shareImgBtn').addEventListener('click', async ()=>{
+  if(!shareBlob){ showToast('画像を作っています…'); return; }
+  const file = new File([shareBlob], 'osakenomitai-record.png', {type:'image/png'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], text:'オサケノミタイ地図', url: SITE_URL}); }catch(e){}
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(shareBlob);
+  a.download = file.name;
+  a.click();
+});
+
 /* ---------- ログイン・保存・閲覧履歴（Firebase） ---------- */
 function toggleSave(shopId){
   if(!currentUser){ showToast('保存するにはログインしてください'); return; }
@@ -892,6 +1072,10 @@ function loadUserData(uid){
     renderMypage();
   }).catch(()=>{});
   loadHistoryCount(uid);
+  db.collection('users').doc(uid).collection('visits').get().then(snap=>{
+    visits = new Map(snap.docs.map(d=> [d.id, d.data()]));
+    renderMypage();
+  }).catch(()=>{});
 }
 function loadHistoryCount(uid){
   db.collection('users').doc(uid).collection('history').get().then(snap=>{
@@ -924,21 +1108,29 @@ function renderMypage(){
     </div>
     <div class="stats">
       <div class="stat"><div class="stat-num">${myPosts().length}</div><div class="stat-label">掲載した酒場</div></div>
+      <div class="stat"><div class="stat-num">${visits.size}</div><div class="stat-label">行った酒場</div></div>
       <div class="stat"><div class="stat-num">${savedIds.size}</div><div class="stat-label">保存した酒場</div></div>
-      <div class="stat"><div class="stat-num">${historyCount}</div><div class="stat-label">見た酒場</div></div>
     </div>
+    <button class="btn btn-main" id="shareBtn" style="margin-top:14px"><i class="ri-share-forward-line"></i>記録をシェアする</button>
     <div class="menu-list">
       <div class="menu-row" data-list="posted"><i class="ri-map-pin-add-line"></i><span>掲載した酒場</span><i class="ri-arrow-right-s-line"></i></div>
+      <div class="menu-row" data-list="visits"><i class="ri-footprint-line"></i><span>行った酒場</span><i class="ri-arrow-right-s-line"></i></div>
       <div class="menu-row" data-list="saved"><i class="ri-heart-line"></i><span>保存した酒場</span><i class="ri-arrow-right-s-line"></i></div>
       <div class="menu-row" data-list="history"><i class="ri-time-line"></i><span>閲覧履歴</span><i class="ri-arrow-right-s-line"></i></div>
     </div>`;
   $('logoutBtn').addEventListener('click', ()=> auth.signOut());
+  $('shareBtn').addEventListener('click', openShareSheet);
   body.querySelectorAll('.menu-row').forEach(r=> r.addEventListener('click', ()=> openMypageList(r.dataset.list)));
 }
 function myPosts(){
   if(!currentUser) return [];
   return userShops.filter(s=> s.createdBy===currentUser.uid)
     .sort((a,b)=> (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+}
+function myVisits(){
+  return [...visits.entries()]
+    .sort((a,b)=> (b[1].visitedAt?.seconds||0) - (a[1].visitedAt?.seconds||0))
+    .map(([id])=> findShop(id)).filter(Boolean);
 }
 function showMypageMain(){
   $('mypageMain').hidden = false;
@@ -947,12 +1139,14 @@ function showMypageMain(){
 function openMypageList(type){
   const saved = type==='saved';
   const wrap = $('mypageListItems');
-  if(type==='posted'){
-    $('mypageListTitle').textContent = '掲載した酒場';
+  if(type==='posted' || type==='visits'){
+    const posted = type==='posted';
+    $('mypageListTitle').textContent = posted ? '掲載した酒場' : '行った酒場';
     $('mypageMain').hidden = true;
     $('mypageList').hidden = false;
-    const mine = myPosts();
-    wrap.innerHTML = mine.length ? mine.map(shopRow).join('') : `<div class="empty">まだ掲載した酒場がありません<br>「投稿」から追加できます</div>`;
+    const mine = posted ? myPosts() : myVisits();
+    wrap.innerHTML = mine.length ? mine.map(shopRow).join('')
+      : `<div class="empty">${posted ? 'まだ掲載した酒場がありません<br>「投稿」から追加できます' : 'まだ行った記録がありません<br>お店のページの「行った！」から記録できます'}</div>`;
     bindRows(wrap);
     return;
   }
@@ -976,6 +1170,7 @@ auth.onAuthStateChanged(user=>{
   currentUser = user;
   savedIds = new Set();
   historyCount = 0;
+  visits = new Map();
   if(user) loadUserData(user.uid);
   render();
   updateDetailSaveBtn();
