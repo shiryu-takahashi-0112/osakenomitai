@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>オサケノミタイ地図 | 酒場ガイド</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.9.0/fonts/remixicon.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -36,6 +37,13 @@
   .leaflet-control-zoom{display:none;}
   .leaflet-control-attribution{background:rgba(255,255,255,0.75) !important;font-size:9px !important;}
   .lantern-marker{background:none;border:none;}
+  .mono-tiles{filter:grayscale(1) contrast(1.1) brightness(1.08);}
+  .me-marker{position:relative;}
+  .me-ring{position:absolute;inset:0;border-radius:50%;background:rgba(18,18,18,.14);animation:mePulse 2s ease-out infinite;}
+  .me-dot{position:absolute;left:5px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--ink);border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+  @keyframes mePulse{0%{transform:scale(.6);opacity:1;}100%{transform:scale(1.8);opacity:0;}}
+  .locate-btn.on{color:var(--ink);background:var(--main);}
+  .dist{color:var(--ink);font-weight:700;}
 
   .map-logo{
     position:absolute;z-index:500;top:calc(12px + var(--safe-t));left:12px;
@@ -148,7 +156,6 @@
   .post-map-hint{position:absolute;z-index:500;left:8px;top:8px;background:rgba(255,255,255,.92);font-size:11.5px;padding:5px 9px;border-radius:8px;pointer-events:none;}
   .dup-warn{margin-top:10px;background:var(--main-soft);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.7;}
   .dup-warn[hidden]{display:none;}
-  .dup-warn button{border:none;background:none;padding:0;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;}
   .form-submit{margin-top:26px;}
   .btn[disabled]{opacity:.45;pointer-events:none;}
   .posted-by{margin-top:18px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;}
@@ -169,6 +176,28 @@
   .bsheet .btn + .btn{margin-top:10px;}
   .share-img{display:block;width:62%;margin:0 auto 16px;border-radius:12px;box-shadow:0 4px 18px rgba(18,18,18,.15);}
   .visit-ig{margin-top:14px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;border-bottom:2px solid var(--main);}
+
+  /* 評価 */
+  .stars{display:flex;gap:2px;}
+  .stars button{border:none;background:none;padding:2px;font-size:30px;line-height:1;color:var(--main);cursor:pointer;}
+  .stars button .ri-star-line{color:var(--muted-2);}
+  .rate{display:inline-flex;align-items:center;gap:3px;font-weight:700;color:var(--ink);}
+  .rate i{color:var(--main);}
+  .detail-rate{margin-top:8px;font-size:14px;display:flex;align-items:center;gap:8px;}
+  .detail-rate .count{color:var(--muted);font-size:12.5px;font-weight:500;}
+  .reviews{margin-top:26px;}
+  .reviews h3{font-size:16px;margin:0 0 4px;}
+  .review{padding:14px 0;border-bottom:1px solid var(--line);}
+  .review-head{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .review-name{font-weight:700;}
+  .review-stars{color:var(--main);font-size:14px;letter-spacing:-1px;}
+  .review-date{margin-left:auto;color:var(--muted-2);font-size:11.5px;}
+  .review-comment{font-size:13.5px;line-height:1.8;margin-top:6px;white-space:pre-wrap;word-break:break-word;}
+  .dup-actions{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .dup-actions .btn{padding:10px 12px;font-size:13px;}
+  .dup-warn.block{background:#fff1ec;}
+  .check{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12.5px;font-weight:700;}
+  .check input{margin-top:3px;width:16px;height:16px;accent-color:var(--ink);}
 
   /* マイページ */
   .login-card{background:var(--surface-soft);border-radius:16px;padding:22px 18px;text-align:center;margin-top:8px;}
@@ -297,6 +326,8 @@
           <option value="default">おすすめ順</option>
           <option value="name">名前順</option>
           <option value="area">エリア順</option>
+          <option value="rating">評価が高い順</option>
+          <option value="near">現在地から近い順</option>
         </select>
       </div>
     </div>
@@ -350,11 +381,20 @@
   <div class="bsheet" id="visitSheet">
     <div class="bsheet-grip"></div>
     <h3 id="visitTitle">行った記録</h3>
-    <p class="sub">このお店について投稿したInstagramのURLを貼ると、記録に紐づけられます（なくても記録できます）。</p>
-    <input class="input" id="visitIg" maxlength="300" inputmode="url" placeholder="https://www.instagram.com/p/…">
+    <p class="sub">評価とひとことは、お店のページでみんなに公開されます。InstagramのURLは自分だけに見えます。どれも任意です。</p>
+    <span class="field-label">評価<span class="opt">任意</span></span>
+    <div class="stars" id="visitStars"></div>
+    <div class="field">
+      <label class="field-label" for="visitComment">ひとこと<span class="opt">任意・公開</span></label>
+      <textarea class="input" id="visitComment" maxlength="300" placeholder="頼んだもの、雰囲気など"></textarea>
+    </div>
+    <div class="field">
+      <label class="field-label" for="visitIg">自分のInstagram投稿<span class="opt">任意</span></label>
+      <input class="input" id="visitIg" maxlength="300" inputmode="url" placeholder="https://www.instagram.com/p/…">
+    </div>
     <div style="margin-top:16px">
       <button class="btn btn-main" id="visitSave"><i class="ri-footprint-line"></i>行ったに記録する</button>
-      <button class="btn btn-secondary" id="visitRemove" hidden>記録を消す</button>
+      <button class="btn btn-secondary" id="visitRemove" hidden>記録と評価を消す</button>
     </div>
   </div>
   <div class="bsheet" id="shareSheet">
@@ -376,6 +416,8 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -426,8 +468,61 @@ function showToast(msg){
 
 /* ---------- 地図 ---------- */
 const map = L.map('map', {zoomControl:false, attributionControl:false, tap:true}).setView([35.68, 139.72], 12);
-L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {maxZoom:18, maxNativeZoom:18}).addTo(map);
-L.control.attribution({position:'topright', prefix:false}).addAttribution('地理院タイル(国土地理院)').addTo(map);
+/* 線画の地図スタイル（OpenFreeMapのベクタータイル＝OpenStreetMapのデータ）。白地に細い線だけで描く */
+const INK = '#121212', LINE = '#9a9a96', LINE_SOFT = '#c9c9c5';
+const JA = ['coalesce', ['get', 'name:ja'], ['get', 'name']];
+const lineW = (z1, w1, z2, w2) => ['interpolate', ['exponential', 1.4], ['zoom'], z1, w1, z2, w2];
+const LINE_STYLE = {
+  version: 8,
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+  sources: { omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } },
+  layers: [
+    { id: 'bg', type: 'background', paint: { 'background-color': '#ffffff' } },
+    { id: 'water', type: 'fill', source: 'omt', 'source-layer': 'water',
+      paint: { 'fill-color': '#f1f1ef', 'fill-outline-color': LINE_SOFT } },
+    { id: 'building', type: 'line', source: 'omt', 'source-layer': 'building', minzoom: 16,
+      paint: { 'line-color': '#ececea', 'line-width': 0.5 } },
+    { id: 'road-minor', type: 'line', source: 'omt', 'source-layer': 'transportation', minzoom: 13,
+      filter: ['match', ['get', 'class'], ['minor', 'service', 'track'], true, false],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': LINE_SOFT, 'line-width': lineW(13, 0.4, 18, 2) } },
+    { id: 'road-major', type: 'line', source: 'omt', 'source-layer': 'transportation',
+      filter: ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary', 'trunk'], true, false],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': LINE, 'line-width': lineW(10, 0.5, 18, 3) } },
+    { id: 'road-motorway', type: 'line', source: 'omt', 'source-layer': 'transportation',
+      filter: ['==', ['get', 'class'], 'motorway'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': LINE, 'line-width': lineW(8, 0.6, 18, 3.5) } },
+    { id: 'rail', type: 'line', source: 'omt', 'source-layer': 'transportation',
+      filter: ['all', ['match', ['get', 'class'], ['rail', 'transit'], true, false], ['!=', ['get', 'brunnel'], 'tunnel'], ['!', ['has', 'service']]],
+      paint: { 'line-color': INK, 'line-width': lineW(10, 0.6, 18, 2) } },
+    { id: 'rail-dash', type: 'line', source: 'omt', 'source-layer': 'transportation', minzoom: 14,
+      filter: ['all', ['match', ['get', 'class'], ['rail', 'transit'], true, false], ['!=', ['get', 'brunnel'], 'tunnel'], ['!', ['has', 'service']]],
+      paint: { 'line-color': '#ffffff', 'line-width': lineW(14, 0.6, 18, 1.2), 'line-dasharray': [3, 3] } },
+    { id: 'place', type: 'symbol', source: 'omt', 'source-layer': 'place', minzoom: 11, maxzoom: 15,
+      filter: ['match', ['get', 'class'], ['city', 'town', 'suburb'], true, false],
+      layout: { 'text-field': JA, 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-max-width': 8 },
+      paint: { 'text-color': '#8a8a86', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 } },
+    { id: 'station', type: 'symbol', source: 'omt', 'source-layer': 'poi', minzoom: 12,
+      filter: ['all', ['==', ['get', 'class'], 'railway'], ['==', ['get', 'subclass'], 'station']],
+      layout: { 'text-field': JA, 'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-max-width': 8 },
+      paint: { 'text-color': INK, 'text-halo-color': '#ffffff', 'text-halo-width': 2 } }
+  ]
+};
+
+/* 線画の地図を敷く。WebGLが使えない端末では、国土地理院の淡色地図を白黒にして代わりに使う */
+function addBaseMap(m){
+  let gl = false;
+  try{ gl = !!(window.maplibregl && maplibregl.supported ? maplibregl.supported() : document.createElement('canvas').getContext('webgl')); }catch(e){}
+  if(gl && L.maplibreGL){
+    L.maplibreGL({style: LINE_STYLE, attributionControl: false}).addTo(m);
+    return '© <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+  }
+  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {maxZoom:18, className:'mono-tiles'}).addTo(m);
+  return '地理院タイル(国土地理院)';
+}
+L.control.attribution({position:'topright', prefix:false}).addAttribution(addBaseMap(map)).addTo(map);
 
 function lanternIcon(active){
   const w = active ? 30 : 24, h = active ? 38 : 30;
@@ -466,7 +561,8 @@ function showPreview(id){
   previewId = id;
   markers[id].setIcon(PIN_ACTIVE);
   $('previewName').textContent = s.name;
-  $('previewSub').textContent = [s.area, catOf(s).label].filter(Boolean).join(' ・ ');
+  const r = ratingOf(s.id);
+  $('previewSub').textContent = [r ? `★${r.avg.toFixed(1)}（${r.count}）` : '', s.area, catOf(s).label].filter(Boolean).join(' ・ ');
   $('previewDesc').textContent = s.desc || '';
   app.classList.add('has-preview');
 }
@@ -478,14 +574,49 @@ function hidePreview(){
 $('preview').addEventListener('click', ()=>{ if(previewId!=null) openDetail(previewId); });
 map.on('click', hidePreview);
 
-$('locateBtn').addEventListener('click', ()=>{
-  if(!navigator.geolocation){ showToast('位置情報が使えません'); return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const {latitude, longitude} = pos.coords;
-    map.flyTo([latitude, longitude], 15, {duration:0.6});
-    L.circleMarker([latitude, longitude], {radius:7, color:'#121212', fillColor:'#F2C600', fillOpacity:1, weight:2}).addTo(map);
-  }, ()=> showToast('位置情報を取得できませんでした'));
+/* ---------- 現在地 ----------
+   一度許可されたら位置を追いかけて、地図に自分の位置（黒い点）を出し続ける。
+   すでに許可済みなら、開いたときに自動で現在地のまわりを表示する */
+let myPos = null, myPosMarker = null, geoWatch = null, flyOnFirstFix = false;
+const ME_ICON = L.divIcon({
+  className: 'me-marker', iconSize: [22, 22], iconAnchor: [11, 11],
+  html: '<span class="me-ring"></span><span class="me-dot"></span>'
 });
+function onPosition(pos){
+  const first = !myPos;
+  myPos = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+  if(!myPosMarker) myPosMarker = L.marker([myPos.lat, myPos.lng], {icon: ME_ICON, interactive:false, zIndexOffset:-100}).addTo(map);
+  else myPosMarker.setLatLng([myPos.lat, myPos.lng]);
+  if(flyOnFirstFix){
+    flyOnFirstFix = false;
+    map.flyTo([myPos.lat, myPos.lng], Math.max(map.getZoom(), 15), {duration:0.6});
+  }
+  $('locateBtn').classList.add('on');
+  if(first || state.sort==='near') render();
+}
+function onPositionError(err){
+  flyOnFirstFix = false;
+  if(err && err.code===1) showToast('位置情報がオフです。ブラウザの設定で許可してください');
+  else showToast('現在地を取得できませんでした');
+}
+function startLocating(fly){
+  if(!navigator.geolocation){ showToast('この端末では現在地が使えません'); return; }
+  flyOnFirstFix = !!fly;
+  if(myPos && fly){ flyOnFirstFix = false; map.flyTo([myPos.lat, myPos.lng], Math.max(map.getZoom(), 15), {duration:0.6}); }
+  if(geoWatch==null){
+    geoWatch = navigator.geolocation.watchPosition(onPosition, onPositionError, {enableHighAccuracy:true, maximumAge:15000, timeout:15000});
+  }
+}
+$('locateBtn').addEventListener('click', ()=> startLocating(true));
+if(navigator.permissions && navigator.permissions.query){
+  navigator.permissions.query({name:'geolocation'}).then(p=>{ if(p.state==='granted') startLocating(true); }).catch(()=>{});
+}
+function distanceLabel(s){
+  if(!myPos) return '';
+  const d = distanceM(s, myPos);
+  return d < 1000 ? `${Math.round(d/10)*10}m` : `${(d/1000).toFixed(1)}km`;
+}
+
 
 /* ユーザーが投稿した店（誰でも読める。新しい投稿はリアルタイムで地図に増える） */
 db.collection('shops').onSnapshot(snap=>{
@@ -506,6 +637,35 @@ db.collection('shops').onSnapshot(snap=>{
   render();
   renderMypage();
 }, ()=>{});
+
+/* 評価（誰でも読める）。店ごとにまとめて平均を出す */
+let reviewsByShop = new Map();
+db.collection('reviews').onSnapshot(snap=>{
+  const m = new Map();
+  snap.docs.forEach(d=>{
+    const r = d.data();
+    if(!r.shopId || !r.rating) return;
+    if(!m.has(r.shopId)) m.set(r.shopId, []);
+    m.get(r.shopId).push(r);
+  });
+  m.forEach(list=> list.sort((a,b)=> (b.updatedAt?.seconds||0) - (a.updatedAt?.seconds||0)));
+  reviewsByShop = m;
+  render();
+  if(detailId!=null && $('detail').classList.contains('open')) openDetail(detailId, true);
+}, ()=>{});
+function ratingOf(id){
+  const list = reviewsByShop.get(id);
+  if(!list || !list.length) return null;
+  return {avg: list.reduce((a,r)=> a + r.rating, 0) / list.length, count: list.length};
+}
+function rateHtml(id){
+  const r = ratingOf(id);
+  return r ? `<span class="rate"><i class="ri-star-fill"></i>${r.avg.toFixed(1)}</span>` : '';
+}
+function myReview(id){
+  if(!currentUser) return null;
+  return (reviewsByShop.get(id) || []).find(r=> r.uid===currentUser.uid) || null;
+}
 
 /* ---------- 絞り込み（地図と「さがす」で共通） ---------- */
 function refreshAreas(){
@@ -529,6 +689,8 @@ function applyFilter(){
   });
   if(state.sort==='name') list.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
   if(state.sort==='area') list.sort((a,b)=>(a.area||'').localeCompare(b.area||'','ja'));
+  if(state.sort==='near' && myPos) list.sort((a,b)=> distanceM(a, myPos) - distanceM(b, myPos));
+  if(state.sort==='rating') list.sort((a,b)=> (ratingOf(b.id)?.avg||0) - (ratingOf(a.id)?.avg||0) || (ratingOf(b.id)?.count||0) - (ratingOf(a.id)?.count||0));
   return list;
 }
 
@@ -539,7 +701,7 @@ function shopRow(s){
       <div class="shop-ic"><i class="${catOf(s).icon}"></i></div>
       <div class="shop-body">
         <div class="shop-name">${escapeHtml(s.name)}</div>
-        <div class="shop-sub">${escapeHtml([s.area, s.walk].filter(Boolean).join(' ・ '))}</div>
+        <div class="shop-sub">${rateHtml(s.id)}${rateHtml(s.id) ? ' ' : ''}${myPos ? `<span class="dist">${distanceLabel(s)}</span> ` : ''}${escapeHtml([s.area, s.walk].filter(Boolean).join(' ・ '))}</div>
       </div>
       <button class="save-btn${saved?' saved':''}" data-save-id="${s.id}" aria-label="保存">${heartIcon(saved)}</button>
     </div>`;
@@ -593,7 +755,11 @@ $('catChips').addEventListener('click', e=>{
   render();
 });
 $('areaSelect').addEventListener('change', e=>{ state.area = e.target.value; render(); });
-$('sortSelect').addEventListener('change', e=>{ state.sort = e.target.value; render(); });
+$('sortSelect').addEventListener('change', e=>{
+  state.sort = e.target.value;
+  if(state.sort==='near' && !myPos) startLocating(false);
+  render();
+});
 let searchDebounce;
 $('searchInput').addEventListener('input', e=>{
   clearTimeout(searchDebounce);
@@ -603,12 +769,13 @@ $('searchInput').addEventListener('input', e=>{
 
 /* ---------- 店の詳細 ---------- */
 let detailId = null;
-function openDetail(id){
+// refresh=true は、開いている詳細を評価の更新に合わせて描き直すとき（履歴やスクロール位置はそのまま）
+function openDetail(id, refresh){
   const s = findShop(id);
   if(!s) return;
   detailId = id;
   updateDetailSaveBtn();
-  recordHistory(id);
+  if(!refresh) recordHistory(id);
 
   const rows = [
     ['ri-map-pin-line', '住所', s.addr],
@@ -625,14 +792,16 @@ function openDetail(id){
     <span class="detail-cat"><i class="${catOf(s).icon}"></i>${catOf(s).label}</span>
     <h2 class="detail-name">${escapeHtml(s.name)}</h2>
     <div class="detail-area">${escapeHtml(s.area||'')}</div>
+    ${ratingOf(s.id) ? `<div class="detail-rate">${rateHtml(s.id)}<span class="count">${ratingOf(s.id).count}件の評価</span></div>` : ''}
     ${s.desc ? `<p class="detail-desc">${escapeHtml(s.desc)}</p>` : ''}
     <div class="info">${rows}</div>
     <div class="detail-actions">
-      <button class="btn ${visits.has(s.id) ? 'btn-primary' : 'btn-secondary'}" id="detailVisit"><i class="${visits.has(s.id) ? 'ri-footprint-fill' : 'ri-footprint-line'}"></i>${visits.has(s.id) ? '行った（記録済み）' : '行った！'}</button>
+      <button class="btn ${visits.has(s.id) ? 'btn-primary' : 'btn-secondary'}" id="detailVisit"><i class="${visits.has(s.id) ? 'ri-footprint-fill' : 'ri-footprint-line'}"></i>${visits.has(s.id) ? '行った（記録済み）' : '行った・評価する'}</button>
       <button class="btn btn-main" id="detailShowMap"><i class="ri-map-2-line"></i>地図で見る</button>
       ${s.ig ? `<a class="btn btn-primary" href="${escapeHtml(s.ig)}" target="_blank" rel="noopener">${IG_LOGO}Instagramで見る</a>` : ''}
       <a class="btn btn-secondary" href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener"><i class="ri-navigation-line"></i>Googleマップで開く</a>
     </div>
+    ${reviewsHtml(s.id)}
     ${visits.get(s.id)?.ig ? `<a class="visit-ig" href="${escapeHtml(visits.get(s.id).ig)}" target="_blank" rel="noopener">${IG_LOGO}あなたのInstagram投稿</a>` : ''}
     ${s.userPosted ? `<div class="posted-by"><i class="ri-user-3-line"></i>${escapeHtml(s.createdByName || 'ユーザー')}さんが掲載</div>` : ''}
     ${canDelete(s) ? `<button class="danger-btn" id="detailDelete">この投稿を削除する</button>` : ''}`;
@@ -644,8 +813,22 @@ function openDetail(id){
     map.flyTo([s.lat, s.lng], Math.max(map.getZoom(), 16), {duration:0.5});
     showPreview(s.id);
   });
-  $('detail').scrollTop = 0;
+  if(!refresh) $('detail').scrollTop = 0;
   $('detail').classList.add('open');
+}
+function reviewsHtml(id){
+  const list = reviewsByShop.get(id) || [];
+  if(!list.length) return '';
+  const fmt = ts=> ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ja-JP', {year:'numeric', month:'numeric', day:'numeric'}) : '';
+  return `<section class="reviews"><h3>みんなの評価</h3>${list.map(r=> `
+    <div class="review">
+      <div class="review-head">
+        <span class="review-name">${escapeHtml(r.userName || 'ユーザー')}${currentUser && r.uid===currentUser.uid ? '（あなた）' : ''}</span>
+        <span class="review-stars">${'★'.repeat(r.rating)}<span style="color:var(--line)">${'★'.repeat(5-r.rating)}</span></span>
+        <span class="review-date">${fmt(r.updatedAt)}</span>
+      </div>
+      ${r.comment ? `<div class="review-comment">${escapeHtml(r.comment)}</div>` : ''}
+    </div>`).join('')}</section>`;
 }
 function canDelete(s){
   return !!(s.userPosted && currentUser && (s.createdBy===currentUser.uid || currentUser.email===ADMIN_EMAIL));
@@ -692,12 +875,12 @@ $('tabbar').addEventListener('click', e=>{
 });
 
 /* ---------- 投稿（ユーザーが酒場を地図に追加する） ---------- */
-let postMap = null, postPin = null, postLatLng = null, postCat = '';
+let postMap = null, postPin = null, postLatLng = null, postCat = '', postRating = 0;
 
 function renderPost(){
   const body = $('postBody');
   if(postMap){ postMap.remove(); postMap = null; postPin = null; }
-  postLatLng = null; postCat = '';
+  postLatLng = null; postCat = ''; postRating = 0; dupState = null;
   if(!currentUser){
     body.innerHTML = `
       <p class="form-lead">行った酒場を投稿して、みんなでマップを埋めていきましょう。</p>
@@ -739,7 +922,11 @@ function renderPost(){
       <datalist id="pAreaList">${[...new Set(ALL.map(s=>s.area).filter(Boolean))].map(a=>`<option value="${escapeHtml(a)}">`).join('')}</datalist>
     </div>
     <div class="field">
-      <label class="field-label" for="pDesc">ひとこと<span class="opt">任意</span></label>
+      <span class="field-label">あなたの評価<span class="opt">任意・公開</span></span>
+      <div class="stars" id="pStars"></div>
+    </div>
+    <div class="field">
+      <label class="field-label" for="pDesc">お店の紹介<span class="opt">任意</span></label>
       <textarea class="input" id="pDesc" maxlength="200" placeholder="どんなお店か、おすすめを一言で"></textarea>
     </div>
     <div class="field">
@@ -767,8 +954,9 @@ function renderPost(){
       <button class="btn btn-main" id="pSubmit" disabled><i class="ri-map-pin-add-line"></i>地図に追加する</button>
     </div>`;
 
+  starInput($('pStars'), 0, n=>{ postRating = n; });
   postMap = L.map('postMap', {zoomControl:false, attributionControl:false}).setView(map.getCenter(), 15);
-  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {maxZoom:18}).addTo(postMap);
+  addBaseMap(postMap);
   postMap.on('click', e=> setPostLocation(e.latlng, false));
 
   $('pCat').addEventListener('click', e=>{
@@ -781,11 +969,11 @@ function renderPost(){
   ['pName','pAddr','pArea'].forEach(id=> $(id).addEventListener('input', ()=>{ updatePostSubmit(); if(id==='pName') checkDuplicate(); }));
   $('pGeocode').addEventListener('click', geocodeAddress);
   $('pHere').addEventListener('click', ()=>{
-    if(!navigator.geolocation){ showToast('位置情報が使えません'); return; }
+    if(!navigator.geolocation){ showToast('この端末では現在地が使えません'); return; }
     navigator.geolocation.getCurrentPosition(
-      pos=> setPostLocation(L.latLng(pos.coords.latitude, pos.coords.longitude), true),
-      ()=> showToast('位置情報を取得できませんでした'),
-      {enableHighAccuracy:true, timeout:10000}
+      pos=>{ onPosition(pos); setPostLocation(L.latLng(pos.coords.latitude, pos.coords.longitude), true); },
+      onPositionError,
+      {enableHighAccuracy:true, timeout:15000}
     );
   });
   $('pSubmit').addEventListener('click', submitPost);
@@ -836,28 +1024,73 @@ async function geocodeAddress(){
   }
 }
 
-/* 近くに同じ店が載っていないか（80m以内） */
+/* 2点間の距離（m） */
 function distanceM(a, b){
   const R = 6371000, toRad = x=> x*Math.PI/180;
   const dLat = toRad(b.lat-a.lat), dLng = toRad(b.lng-a.lng);
   const h = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
   return 2*R*Math.asin(Math.sqrt(h));
 }
+/* ---------- 同じ店の重複を防ぐ ----------
+   店名のゆれ（全角半角・大文字小文字・空白や記号）をならして比べ、場所の近さと合わせて判断する。
+   - 同じ名前で200m以内：同じ店とみなし、新しく投稿させない（その店に「行った・評価」を付けてもらう）
+   - 名前は違うが40m以内：同じ店かもしれないので、「別の店です」にチェックしたときだけ投稿できる
+   - 同じ名前が遠くにある：チェーン店などもあるので、知らせるだけ */
+function normName(s){
+  return (s||'').normalize('NFKC').toLowerCase().replace(/[\s・･、。,.\-‐－_'"’”!?&＆()（）「」『』【】\[\]/／]/g, '');
+}
+function sameName(a, b){
+  const x = normName(a), y = normName(b);
+  if(!x || !y) return false;
+  if(x===y) return true;
+  return Math.min(x.length, y.length) >= 3 && (x.includes(y) || y.includes(x));
+}
+let dupState = null;   // 'block' | 'warn' | null
 function checkDuplicate(){
   const box = $('pDup');
   if(!box) return;
-  if(!postLatLng){ box.hidden = true; return; }
-  const near = ALL.filter(s=> distanceM(s, postLatLng) < 80).slice(0, 3);
-  if(!near.length){ box.hidden = true; return; }
-  box.innerHTML = 'すぐ近くに掲載済みの店があります。同じ店ではないか確認してください：<br>' +
-    near.map(s=> `<button type="button" data-id="${s.id}">${escapeHtml(s.name)}</button>`).join('、');
-  box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=> openDetail(b.dataset.id)));
+  const name = $('pName').value.trim();
+  const byName = name ? ALL.filter(s=> sameName(s.name, name)) : [];
+  const block = postLatLng ? byName.filter(s=> distanceM(s, postLatLng) < 200) : [];
+  const near = postLatLng ? ALL.filter(s=> distanceM(s, postLatLng) < 40 && !block.includes(s)) : [];
+  const shopBtns = list=> list.slice(0, 3).map(s=> `
+    <button type="button" class="btn btn-secondary" data-open="${s.id}">${escapeHtml(s.name)}（${escapeHtml(s.area||'')}）を見る</button>`).join('');
+  box.classList.remove('block');
+  dupState = null;
+
+  if(block.length){
+    const s = block[0];
+    dupState = 'block';
+    box.classList.add('block');
+    box.innerHTML = `<b>「${escapeHtml(s.name)}」はもう地図に載っています。</b><br>新しく投稿せず、このお店に「行った・評価」を付けてください。
+      <div class="dup-actions">
+        <button type="button" class="btn btn-primary" data-visit="${s.id}"><i class="ri-footprint-line"></i>このお店に行った・評価する</button>
+        ${shopBtns([s])}
+      </div>`;
+  }else if(near.length){
+    dupState = 'warn';
+    box.innerHTML = `すぐ近くに掲載済みの店があります。同じ店ではないか確認してください。
+      <div class="dup-actions">${shopBtns(near)}</div>
+      <label class="check"><input type="checkbox" id="pNotDup">同じ店ではありません（別の店として投稿する）</label>`;
+    $('pNotDup').addEventListener('change', updatePostSubmit);
+  }else if(byName.length){
+    box.innerHTML = `同じ名前の店が載っています。同じ店なら、新しく投稿せずにそのお店に「行った・評価」を付けてください。
+      <div class="dup-actions">${shopBtns(byName)}</div>`;
+  }else{
+    box.hidden = true;
+    updatePostSubmit();
+    return;
+  }
+  box.querySelectorAll('[data-open]').forEach(b=> b.addEventListener('click', ()=> openDetail(b.dataset.open)));
+  box.querySelectorAll('[data-visit]').forEach(b=> b.addEventListener('click', ()=> openVisitSheet(findShop(b.dataset.visit))));
   box.hidden = false;
+  updatePostSubmit();
 }
 
 function updatePostSubmit(){
-  const ok = $('pName').value.trim() && postCat && $('pAddr').value.trim() && $('pArea').value.trim() && postLatLng;
-  $('pSubmit').disabled = !ok;
+  const filled = $('pName').value.trim() && postCat && $('pAddr').value.trim() && $('pArea').value.trim() && postLatLng;
+  const dupOk = dupState===null || (dupState==='warn' && $('pNotDup')?.checked);
+  $('pSubmit').disabled = !(filled && dupOk);
 }
 
 function normalizeIg(v){
@@ -891,6 +1124,8 @@ function submitPost(){
   const btn = $('pSubmit');
   btn.disabled = true;
   db.collection('shops').add(data).then(ref=>{
+    // 投稿した人はそのお店に行っているので、行った記録（と評価）も一緒に残す
+    saveVisitAndReview(ref.id, {ig, rating: postRating, comment: ''}).then(renderMypage).catch(()=>{});
     showToast('地図に追加しました');
     renderPost();
     showView('map', true);
@@ -911,40 +1146,93 @@ function closeSheets(){
 }
 $('sheetBackdrop').addEventListener('click', closeSheets);
 
+/* 星の入力（1〜5。同じ星をもう一度押すと0に戻す） */
+function starInput(el, value, onChange){
+  const draw = ()=>{
+    el.innerHTML = [1,2,3,4,5].map(n=>
+      `<button type="button" data-n="${n}" aria-label="${n}"><i class="${n<=value ? 'ri-star-fill' : 'ri-star-line'}"></i></button>`
+    ).join('');
+  };
+  el.onclick = e=>{
+    const b = e.target.closest('button');
+    if(!b) return;
+    const n = parseInt(b.dataset.n);
+    value = (value===n) ? 0 : n;
+    draw();
+    onChange(value);
+  };
+  draw();
+}
+
+let visitRating = 0;
 function openVisitSheet(s){
   if(!currentUser){ showToast('記録するにはログインしてください'); return; }
   visitShop = s;
   const v = visits.get(s.id);
+  const r = myReview(s.id);
   $('visitTitle').textContent = `「${s.name}」に行った`;
   $('visitIg').value = v?.ig || '';
-  $('visitSave').innerHTML = v ? '<i class="ri-footprint-fill"></i>記録を更新する' : '<i class="ri-footprint-line"></i>行ったに記録する';
-  $('visitRemove').hidden = !v;
+  $('visitComment').value = r?.comment || '';
+  visitRating = r?.rating || 0;
+  starInput($('visitStars'), visitRating, n=>{ visitRating = n; });
+  $('visitSave').innerHTML = v ? '<i class="ri-footprint-fill"></i>記録を更新する' : '<i class="ri-footprint-line"></i>記録する';
+  $('visitRemove').hidden = !v && !r;
   openSheet('visitSheet');
 }
+
+/* 行った記録（本人だけ）と評価（公開）をまとめて保存する */
+function saveVisitAndReview(shopId, {ig, rating, comment}){
+  const uid = currentUser.uid;
+  const prev = visits.get(shopId);
+  const visit = {shopId, visitedAt: prev?.visitedAt || firebase.firestore.FieldValue.serverTimestamp()};
+  if(ig) visit.ig = ig;
+  const jobs = [db.collection('users').doc(uid).collection('visits').doc(shopId).set(visit)];
+  const reviewRef = db.collection('reviews').doc(`${shopId}_${uid}`);
+  const prevReview = myReview(shopId);
+  if(rating){
+    const review = {
+      shopId, uid, rating,
+      userName: (currentUser.displayName || 'ユーザー').slice(0, 60),
+      createdAt: prevReview?.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if(comment) review.comment = comment;
+    jobs.push(reviewRef.set(review));
+  }else if(prevReview){
+    jobs.push(reviewRef.delete());
+  }
+  return Promise.all(jobs).then(()=>{
+    visits.set(shopId, Object.assign({}, visit, {visitedAt: prev?.visitedAt || {seconds: Date.now()/1000}}));
+  });
+}
+
 $('visitSave').addEventListener('click', ()=>{
   const s = visitShop;
   if(!s || !currentUser) return;
   const ig = normalizeIg($('visitIg').value);
   if(ig===null){ showToast('InstagramのURLを確認してください'); return; }
-  const prev = visits.get(s.id);
-  const data = {shopId: s.id, visitedAt: prev?.visitedAt || firebase.firestore.FieldValue.serverTimestamp()};
-  if(ig) data.ig = ig;
-  db.collection('users').doc(currentUser.uid).collection('visits').doc(s.id).set(data).then(()=>{
-    visits.set(s.id, Object.assign({}, data, {visitedAt: prev?.visitedAt || {seconds: Date.now()/1000}}));
+  const comment = $('visitComment').value.trim();
+  if(comment && !visitRating){ showToast('ひとことを残すときは星も付けてください'); return; }
+  const had = visits.has(s.id);
+  saveVisitAndReview(s.id, {ig, rating: visitRating, comment}).then(()=>{
     closeSheets();
-    showToast(prev ? '記録を更新しました' : '行ったに記録しました');
-    if(detailId===s.id) openDetail(s.id);
+    showToast(had ? '記録を更新しました' : '行ったに記録しました');
+    if(detailId===s.id) openDetail(s.id, true);
     renderMypage();
   }).catch(()=> showToast('記録できませんでした'));
 });
 $('visitRemove').addEventListener('click', ()=>{
   const s = visitShop;
   if(!s || !currentUser) return;
-  db.collection('users').doc(currentUser.uid).collection('visits').doc(s.id).delete().then(()=>{
+  const uid = currentUser.uid;
+  Promise.all([
+    db.collection('users').doc(uid).collection('visits').doc(s.id).delete(),
+    myReview(s.id) ? db.collection('reviews').doc(`${s.id}_${uid}`).delete() : null
+  ]).then(()=>{
     visits.delete(s.id);
     closeSheets();
-    showToast('記録を消しました');
-    if(detailId===s.id) openDetail(s.id);
+    showToast('記録と評価を消しました');
+    if(detailId===s.id) openDetail(s.id, true);
     renderMypage();
   }).catch(()=> showToast('消せませんでした'));
 });

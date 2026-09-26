@@ -51,5 +51,30 @@ service cloud.firestore {
       allow delete: if isAdmin()
         || (request.auth != null && resource.data.createdBy == request.auth.uid);
     }
+
+    // 店の評価。1人1店1件（ドキュメントIDは「店のID_ユーザーのuid」に固定）。誰でも見られる
+    function validReview(d, reviewId) {
+      return d.keys().hasOnly(['shopId', 'uid', 'userName', 'rating', 'comment', 'createdAt', 'updatedAt'])
+        && d.uid == request.auth.uid
+        && d.shopId is string && d.shopId.size() > 0 && d.shopId.size() <= 40
+        && reviewId == d.shopId + '_' + request.auth.uid
+        && d.rating is int && d.rating >= 1 && d.rating <= 5
+        && (!('comment' in d) || (d.comment is string && d.comment.size() <= 300))
+        && d.userName is string && d.userName.size() <= 60
+        && d.updatedAt == request.time;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && validReview(request.resource.data, reviewId)
+        && request.resource.data.createdAt == request.time;
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && validReview(request.resource.data, reviewId)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin()
+        || (request.auth != null && resource.data.uid == request.auth.uid);
+    }
   }
 }
