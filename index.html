@@ -271,10 +271,10 @@
     gap:4px;height:var(--tab-h);color:var(--tab-off);font-size:10.5px;font-weight:700;cursor:pointer;position:relative;
   }
   .tab i{font-size:24px;line-height:24px;height:24px;}
-  .tab .ic-on{display:none;}
+
   .tab.on{color:var(--ink);}
-  .tab.on .ic-on{display:block;}
-  .tab.on .ic-off{display:none;}
+
+  .tab.on i{color:var(--main);}
   .tab.on:before{content:'';position:absolute;top:0;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--main);}
 
   /* ---------- トースト・スプラッシュ ---------- */
@@ -435,10 +435,10 @@
 
   <!-- フッターメニュー -->
   <nav class="tabbar" id="tabbar" aria-label="メニュー">
-    <button class="tab" data-view="map"><i class="ri-map-2-line ic-off"></i><i class="ri-map-2-fill ic-on"></i><span>マップ</span></button>
-    <button class="tab" data-view="search"><i class="ri-search-line ic-off"></i><i class="ri-search-fill ic-on"></i><span>さがす</span></button>
-    <button class="tab" data-view="post"><i class="ri-map-pin-add-line ic-off"></i><i class="ri-map-pin-add-fill ic-on"></i><span>投稿</span></button>
-    <button class="tab" data-view="mypage"><i class="ri-user-3-line ic-off"></i><i class="ri-user-3-fill ic-on"></i><span>マイページ</span></button>
+    <button class="tab" data-view="map"><i class="ri-map-2-line"></i><span>マップ</span></button>
+    <button class="tab" data-view="search"><i class="ri-search-line"></i><span>さがす</span></button>
+    <button class="tab" data-view="post"><i class="ri-map-pin-add-line"></i><span>投稿</span></button>
+    <button class="tab" data-view="mypage"><i class="ri-user-3-line"></i><span>マイページ</span></button>
   </nav>
 
   <div class="sheet-backdrop" id="sheetBackdrop"></div>
@@ -714,7 +714,11 @@ const PIN = lanternIcon(false), PIN_ACTIVE = lanternIcon(true);
    id はどちらも文字列で扱う（投稿した店は Firestore のドキュメントID） */
 SHOPS.forEach(s => { s.id = String(s.id); });
 let userShops = [];
-let ALL = SHOPS.slice();
+// オサケノミタイとして載せていた店（SHOPS）は、2026-09-27にShiryuの指示で一旦非表示にした。
+// ユーザーの投稿だけで地図を埋めていく。戻すときは SHOW_OFFICIAL を true にする
+const SHOW_OFFICIAL = false;
+const OFFICIAL = SHOW_OFFICIAL ? SHOPS : [];
+let ALL = OFFICIAL.slice();
 function findShop(id){ return ALL.find(s=> s.id===id); }
 
 const markers = {};
@@ -724,7 +728,7 @@ function ensureMarker(s){
   m.on('click', () => showPreview(s.id));
   markers[s.id] = m;
 }
-SHOPS.forEach(ensureMarker);
+OFFICIAL.forEach(ensureMarker);
 /* 近い店はまとめて数字の丸にする。寄れば（ズーム17以上）1軒ずつのピンに戻る */
 const pinLayer = (L.markerClusterGroup ? L.markerClusterGroup({
   maxClusterRadius: z => z >= 15 ? 26 : 44, disableClusteringAtZoom: 17, showCoverageOnHover: false, spiderfyOnMaxZoom: false,
@@ -812,9 +816,9 @@ db.collection('shops').onSnapshot(snap=>{
   });
   const ids = new Set(userShops.map(s=>s.id));
   Object.keys(markers).forEach(id=>{
-    if(!SHOPS.some(s=>s.id===id) && !ids.has(id)){ pinLayer.removeLayer(markers[id]); delete markers[id]; }
+    if(!OFFICIAL.some(s=>s.id===id) && !ids.has(id)){ pinLayer.removeLayer(markers[id]); delete markers[id]; }
   });
-  ALL = SHOPS.concat(userShops);
+  ALL = OFFICIAL.concat(userShops);
   refreshAreas();
   render();
   renderMypage();
@@ -922,7 +926,9 @@ function render(){
   const wrap = $('resultList');
   wrap.innerHTML = list.length
     ? list.map(shopRow).join('')
-    : `<div class="empty">条件に合う酒場が見つかりませんでした<br>条件を変えてみてください</div>`;
+    : (ALL.length
+      ? `<div class="empty">条件に合う酒場が見つかりませんでした<br>条件を変えてみてください</div>`
+      : `<div class="empty">まだ掲載されている酒場がありません<br>「投稿」から最初の1軒を追加しましょう</div>`);
   bindRows(wrap);
 }
 
