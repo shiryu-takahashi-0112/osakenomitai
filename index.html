@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>オサケノミタイ地図 | 酒場ガイド</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="オサケノミタイ">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.9.0/fonts/remixicon.css">
@@ -225,6 +233,7 @@
   .menu-row > i:first-child{font-size:20px;}
   .menu-row span{flex:1;}
   .menu-row > i:last-child{color:var(--muted-2);font-size:20px;}
+  .menu-row span.badge{flex:0 0 auto;}
   .back-row{display:flex;align-items:center;gap:6px;}
   .icon-btn{border:none;background:none;width:40px;height:40px;margin-left:-10px;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 
@@ -284,6 +293,46 @@
   .splash-dots span:nth-child(3){animation-delay:.3s;}
   @keyframes splashDot{0%,80%,100%{transform:translateY(0);opacity:.25;}40%{transform:translateY(-6px);opacity:1;}}
 
+  /* 営業中の目安 */
+  .open-tag{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--surface-soft);color:var(--muted);white-space:nowrap;}
+  .open-tag.on{background:var(--ink);color:var(--white);}
+  .chip-sep{flex-shrink:0;width:1px;background:var(--line);margin:4px 2px;}
+  .chip i{margin-right:4px;}
+  .info-note{display:block;font-size:11px;color:var(--muted-2);margin-top:2px;}
+
+  /* 写真 */
+  .photos{margin-top:26px;}
+  .photos h3{font-size:16px;margin:0 0 10px;}
+  .photo-strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+  .photo-strip::-webkit-scrollbar{display:none;}
+  .photo-strip button{flex-shrink:0;border:none;padding:0;background:var(--surface-soft);border-radius:12px;overflow:hidden;width:132px;height:132px;cursor:pointer;}
+  .photo-strip img{width:100%;height:100%;object-fit:cover;display:block;}
+  .photo-view{position:absolute;inset:0;z-index:2200;background:rgba(18,18,18,.92);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;}
+  .photo-view.open{display:flex;}
+  .photo-view img{max-width:100%;max-height:78%;border-radius:10px;}
+  .photo-view-cap{color:#fff;font-size:12.5px;margin-top:12px;opacity:.8;}
+  .photo-view-close{position:absolute;top:calc(12px + var(--safe-t));right:12px;border:none;background:rgba(255,255,255,.15);color:#fff;width:40px;height:40px;border-radius:50%;font-size:22px;cursor:pointer;}
+  .photo-pick{display:flex;align-items:center;gap:12px;}
+  .photo-pick img{width:72px;height:72px;border-radius:10px;object-fit:cover;background:var(--surface-soft);}
+  .photo-pick .btn{width:auto;flex:1;padding:10px 12px;font-size:13px;}
+
+  /* 報告 */
+  .radio-list{display:flex;flex-direction:column;gap:8px;}
+  .radio{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-weight:700;cursor:pointer;}
+  .radio input{width:16px;height:16px;accent-color:var(--ink);margin:0;}
+  .report-link{display:inline-flex;align-items:center;gap:6px;margin-top:22px;border:none;background:none;padding:6px 0;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .report-item{padding:14px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.7;}
+  .report-item b{font-size:14.5px;}
+  .report-meta{color:var(--muted);font-size:12px;}
+  .report-actions{display:flex;gap:8px;margin-top:8px;}
+  .report-actions .btn{width:auto;flex:1;padding:9px 10px;font-size:12.5px;}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#c0392b;color:#fff;font-size:11px;font-weight:700;}
+
+  /* 共有リスト */
+  .list-lead{font-size:13px;color:var(--muted);line-height:1.8;margin:4px 0 12px;}
+  .list-actions{display:flex;flex-direction:column;gap:10px;margin:6px 0 10px;}
+  .install-steps{font-size:13.5px;line-height:1.9;margin:0 0 6px;padding-left:1.3em;}
+
   @media (min-width:640px){
     .app{max-width:480px;margin:0 auto;box-shadow:0 0 60px rgba(18,18,18,0.18);}
     body{background:#ececea;}
@@ -317,6 +366,8 @@
       <h1 class="view-title">さがす</h1>
       <div class="search-box"><i class="ri-search-line"></i><input type="search" id="searchInput" placeholder="店名・エリアで検索"></div>
       <div class="chips" id="catChips">
+        <button class="chip" id="openNowChip"><i class="ri-time-line"></i>今やってる</button>
+        <span class="chip-sep"></span>
         <button class="chip active" data-cat="all">すべて</button>
         <button class="chip" data-cat="izakaya">居酒屋</button>
         <button class="chip" data-cat="sakaya">角打ち・酒屋</button>
@@ -362,6 +413,17 @@
     </div>
   </section>
 
+  <!-- 共有された行きたいリスト（URLの ?list= から開く） -->
+  <section class="view" id="viewList">
+    <div class="view-head">
+      <div class="back-row">
+        <button class="icon-btn" id="listBack" aria-label="閉じる"><i class="ri-close-line"></i></button>
+        <h1 class="view-title" id="listTitle">行きたいリスト</h1>
+      </div>
+    </div>
+    <div class="view-body" id="listBody"></div>
+  </section>
+
   <!-- 店の詳細 -->
   <div class="detail" id="detail">
     <div class="detail-head">
@@ -391,6 +453,15 @@
       <textarea class="input" id="visitComment" maxlength="300" placeholder="頼んだもの、雰囲気など"></textarea>
     </div>
     <div class="field">
+      <span class="field-label">写真<span class="opt">任意・公開・1枚</span></span>
+      <div class="photo-pick">
+        <img id="visitPhotoPreview" alt="" hidden>
+        <label class="btn btn-secondary" for="visitPhotoInput"><i class="ri-camera-line"></i><span id="visitPhotoLabel">写真を選ぶ</span></label>
+        <button type="button" class="btn btn-secondary" id="visitPhotoClear" hidden>外す</button>
+      </div>
+      <input type="file" id="visitPhotoInput" accept="image/*" hidden>
+    </div>
+    <div class="field">
       <label class="field-label" for="visitIg">自分のInstagram投稿<span class="opt">任意</span></label>
       <input class="input" id="visitIg" maxlength="300" inputmode="url" placeholder="https://www.instagram.com/p/…">
     </div>
@@ -406,6 +477,37 @@
     <img class="share-img" id="shareImg" alt="">
     <button class="btn btn-main" id="shareImgBtn"><i class="ri-share-forward-line"></i>画像を共有・保存する</button>
     <a class="btn btn-primary" id="shareX" target="_blank" rel="noopener"><svg class="ig-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>Xに投稿する</a>
+  </div>
+
+  <div class="bsheet" id="reportSheet">
+    <div class="bsheet-grip"></div>
+    <h3 id="reportTitle">情報の誤りを報告</h3>
+    <p class="sub">管理者が確認して直します。報告の内容はほかの人には見えません。</p>
+    <div class="radio-list" id="reportTypes">
+      <label class="radio"><input type="radio" name="reportType" value="closed">閉店している</label>
+      <label class="radio"><input type="radio" name="reportType" value="moved">場所・住所が違う</label>
+      <label class="radio"><input type="radio" name="reportType" value="wrong">営業時間などの情報が違う</label>
+      <label class="radio"><input type="radio" name="reportType" value="duplicate">同じ店が2つ載っている</label>
+      <label class="radio"><input type="radio" name="reportType" value="other">その他</label>
+    </div>
+    <div class="field">
+      <label class="field-label" for="reportNote">くわしく<span class="opt">任意</span></label>
+      <textarea class="input" id="reportNote" maxlength="300" placeholder="正しい営業時間、移転先など"></textarea>
+    </div>
+    <div style="margin-top:16px">
+      <button class="btn btn-primary" id="reportSend" disabled><i class="ri-flag-line"></i>報告する</button>
+    </div>
+  </div>
+  <div class="bsheet" id="installSheet">
+    <div class="bsheet-grip"></div>
+    <h3>ホーム画面に追加</h3>
+    <p class="sub">アプリのように、ホーム画面のアイコンからすぐ開けます。</p>
+    <ol class="install-steps" id="installSteps"></ol>
+  </div>
+  <div class="photo-view" id="photoView">
+    <button class="photo-view-close" id="photoViewClose" aria-label="閉じる"><i class="ri-close-line"></i></button>
+    <img id="photoViewImg" alt="">
+    <div class="photo-view-cap" id="photoViewCap"></div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -458,6 +560,72 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function catOf(s){ return CAT_META[s.cat] || CAT_META.izakaya; }
+
+/* ---------- 営業中の目安 ----------
+   営業時間の文字（「月-金 17:00-01:00 / 土日祝 12:00-01:00」など）を読んで、いま開いているかを出す。
+   祝日・臨時休業・「第2水曜」などは見ないので、あくまで目安 */
+const DOW = '日月火水木金土';
+function parseDays(tok){
+  const set = new Set();
+  if(tok.includes('平日')) [1,2,3,4,5].forEach(d=> set.add(d));
+  const t = tok.replace(/祝日?前後|祝前日|祝日|祝|平日|曜日?|定休日?/g, '');
+  const re = /([日月火水木金土])(?:-([日月火水木金土]))?/g;
+  let m;
+  while((m = re.exec(t))){
+    const a = DOW.indexOf(m[1]);
+    if(m[2]){ const b = DOW.indexOf(m[2]); for(let d = a; ; d = (d+1)%7){ set.add(d); if(d===b) break; } }
+    else set.add(a);
+  }
+  return set;
+}
+const hoursCache = new Map();
+// → {groups:[{days:Set|null, ranges:[[開始分, 終了分]]}], closed:Set}。読めなければ null
+function parseHours(str){
+  if(!str) return null;
+  if(hoursCache.has(str)) return hoursCache.get(str);
+  let t = str.normalize('NFKC').replace(/[〜~～ー−–—]/g, '-');
+  let closed = new Set();
+  t = t.replace(/[（(]([^）)]*)[）)]/g, (_, x)=>{ if(/定休/.test(x)) closed = parseDays(x); return ' '; });
+  const groups = [];
+  let cur = null;
+  const re = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})|([日月火水木金土平祝][日月火水木金土平祝曜前後・,、\-]*)/g;
+  let m;
+  while((m = re.exec(t))){
+    if(m[5]){
+      cur = {days: parseDays(m[5]), ranges: []};
+      groups.push(cur);
+      continue;
+    }
+    if(!cur){ cur = {days: null, ranges: []}; groups.push(cur); }
+    const a = +m[1]*60 + +m[2];
+    let b = +m[3]*60 + +m[4];
+    if(b <= a) b += 1440;
+    cur.ranges.push([a, b]);
+  }
+  const res = groups.some(g=> g.ranges.length) ? {groups, closed} : null;
+  hoursCache.set(str, res);
+  return res;
+}
+function closedDays(str){
+  if(!str || /不定休|なし|年末年始|不明|第/.test(str)) return new Set();
+  return parseDays(str.normalize('NFKC'));
+}
+function rangesFor(p, dow){
+  return p.groups.filter(g=> !g.days || g.days.has(dow)).flatMap(g=> g.ranges);
+}
+// true：営業中 ／ false：営業時間外 ／ null：営業時間が読めない
+function openStatus(s, now){
+  const p = parseHours(s.hours);
+  if(!p) return null;
+  now = now || new Date();
+  const closed = new Set([...p.closed, ...closedDays(s.closed)]);
+  const dow = now.getDay(), t = now.getHours()*60 + now.getMinutes();
+  const today = closed.has(dow) ? [] : rangesFor(p, dow);
+  if(today.some(([a, b])=> t >= a && t < b)) return true;
+  const y = (dow + 6) % 7;
+  const yest = closed.has(y) ? [] : rangesFor(p, y);
+  return yest.some(([a, b])=> b > 1440 && t + 1440 >= a && t + 1440 < b);
+}
 function heartIcon(saved){ return `<i class="${saved ? 'ri-heart-fill' : 'ri-heart-line'}"></i>`; }
 
 let toastTimer;
@@ -650,6 +818,7 @@ db.collection('shops').onSnapshot(snap=>{
   refreshAreas();
   render();
   renderMypage();
+  if(sharedList && $('viewList').classList.contains('on')) renderSharedList();
 }, ()=>{});
 
 /* 評価（誰でも読める）。店ごとにまとめて平均を出す */
@@ -689,9 +858,9 @@ function refreshAreas(){
   sel.value = areas.includes(state.area) ? state.area : '';
 }
 
-const state = {cat:'all', area:'', q:'', sort:'default'};
+const state = {cat:'all', area:'', q:'', sort:'default', openNow:false, ids:null};   // ids：共有リストで絞っているときの店IDのSet
 refreshAreas();
-function isFiltered(){ return state.cat!=='all' || !!state.area || !!state.q; }
+function isFiltered(){ return state.cat!=='all' || !!state.area || !!state.q || state.openNow || !!state.ids; }
 
 function applyFilter(){
   const q = state.q.toLowerCase();
@@ -699,6 +868,8 @@ function applyFilter(){
     if(state.cat!=='all' && s.cat!==state.cat) return false;
     if(state.area && s.area!==state.area) return false;
     if(q && !(s.name+s.area+(s.desc||'')).toLowerCase().includes(q)) return false;
+    if(state.openNow && openStatus(s)!==true) return false;
+    if(state.ids && !state.ids.has(s.id)) return false;
     return true;
   });
   if(state.sort==='name') list.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
@@ -715,7 +886,7 @@ function shopRow(s){
       <div class="shop-ic"><i class="${catOf(s).icon}"></i></div>
       <div class="shop-body">
         <div class="shop-name">${escapeHtml(s.name)}</div>
-        <div class="shop-sub">${rateHtml(s.id)}${rateHtml(s.id) ? ' ' : ''}${myPos ? `<span class="dist">${distanceLabel(s)}</span> ` : ''}${escapeHtml([s.area, s.walk].filter(Boolean).join(' ・ '))}</div>
+        <div class="shop-sub">${openStatus(s)===true ? '<span class="open-tag on">営業中</span> ' : ''}${rateHtml(s.id)}${rateHtml(s.id) ? ' ' : ''}${myPos ? `<span class="dist">${distanceLabel(s)}</span> ` : ''}${escapeHtml([s.area, s.walk].filter(Boolean).join(' ・ '))}</div>
       </div>
       <button class="save-btn${saved?' saved':''}" data-save-id="${s.id}" aria-label="保存">${heartIcon(saved)}</button>
     </div>`;
@@ -740,6 +911,8 @@ function render(){
   $('mapCountNum').textContent = list.length;
   $('mapCount').classList.toggle('filtered', isFiltered());
   $('mapFilterLabel').textContent = [
+    state.ids ? '共有リスト' : '',
+    state.openNow ? '今やってる' : '',
     state.cat!=='all' ? CAT_META[state.cat].label : '',
     state.area,
     state.q ? `「${state.q}」` : ''
@@ -754,20 +927,29 @@ function render(){
 }
 
 function resetFilter(){
-  Object.assign(state, {cat:'all', area:'', q:''});
+  Object.assign(state, {cat:'all', area:'', q:'', openNow:false, ids:null});
+  $('openNowChip').classList.remove('active');
   $('searchInput').value = '';
   $('areaSelect').value = '';
-  document.querySelectorAll('#catChips .chip').forEach(c=> c.classList.toggle('active', c.dataset.cat==='all'));
+  document.querySelectorAll('#catChips .chip[data-cat]').forEach(c=> c.classList.toggle('active', c.dataset.cat==='all'));
   render();
 }
 $('mapFilterClear').addEventListener('click', resetFilter);
 $('catChips').addEventListener('click', e=>{
   const chip = e.target.closest('.chip');
   if(!chip) return;
-  document.querySelectorAll('#catChips .chip').forEach(c=> c.classList.toggle('active', c===chip));
+  if(chip.id==='openNowChip'){
+    state.openNow = !state.openNow;
+    chip.classList.toggle('active', state.openNow);
+    render();
+    return;
+  }
+  document.querySelectorAll('#catChips .chip[data-cat]').forEach(c=> c.classList.toggle('active', c===chip));
   state.cat = chip.dataset.cat;
   render();
 });
+// 「今やってる」で絞っているあいだは、時間がたったら数え直す
+setInterval(()=>{ if(state.openNow) render(); }, 5*60*1000);
 $('areaSelect').addEventListener('change', e=>{ state.area = e.target.value; render(); });
 $('sortSelect').addEventListener('change', e=>{
   state.sort = e.target.value;
@@ -791,14 +973,17 @@ function openDetail(id, refresh){
   updateDetailSaveBtn();
   if(!refresh) recordHistory(id);
 
+  const open = openStatus(s);
+  const openHtml = open===null ? '' :
+    ` <span class="open-tag${open ? ' on' : ''}">${open ? '営業中' : '営業時間外'}</span><span class="info-note">祝日・臨時休業は反映していない目安です</span>`;
   const rows = [
     ['ri-map-pin-line', '住所', s.addr],
     ['ri-walk-line', 'アクセス', s.walk],
     ['ri-wallet-3-line', '予算', s.price],
-    ['ri-time-line', '営業時間', s.hours],
+    ['ri-time-line', '営業時間', s.hours, openHtml],
     ['ri-calendar-close-line', '定休日', s.closed]
   ].filter(r=>r[2]).map(r=>
-    `<div class="info-row"><i class="${r[0]}"></i><div class="info-label">${r[1]}</div><div class="info-value">${escapeHtml(r[2])}</div></div>`
+    `<div class="info-row"><i class="${r[0]}"></i><div class="info-label">${r[1]}</div><div class="info-value">${escapeHtml(r[2])}${r[3]||''}</div></div>`
   ).join('');
 
   const mapQ = encodeURIComponent(s.addr || s.name);
@@ -815,10 +1000,14 @@ function openDetail(id, refresh){
       ${s.ig ? `<a class="btn btn-primary" href="${escapeHtml(s.ig)}" target="_blank" rel="noopener">${IG_LOGO}Instagramで見る</a>` : ''}
       <a class="btn btn-secondary" href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener"><i class="ri-navigation-line"></i>Googleマップで開く</a>
     </div>
+    <div id="detailPhotos">${photosHtml(s.id)}</div>
     ${reviewsHtml(s.id)}
     ${visits.get(s.id)?.ig ? `<a class="visit-ig" href="${escapeHtml(visits.get(s.id).ig)}" target="_blank" rel="noopener">${IG_LOGO}あなたのInstagram投稿</a>` : ''}
     ${s.userPosted ? `<div class="posted-by"><i class="ri-user-3-line"></i>${escapeHtml(s.createdByName || 'ユーザー')}さんが掲載</div>` : ''}
-    ${canDelete(s) ? `<button class="danger-btn" id="detailDelete">この投稿を削除する</button>` : ''}`;
+    <button class="report-link" id="detailReport"><i class="ri-flag-line"></i>閉店・情報の誤りを報告する</button>
+    ${canDelete(s) ? `<div><button class="danger-btn" id="detailDelete">この投稿を削除する</button></div>` : ''}`;
+  $('detailReport').addEventListener('click', ()=> openReportSheet(s));
+  if(!refresh) loadPhotos(s.id);
   if(canDelete(s)) $('detailDelete').addEventListener('click', ()=> deleteShop(s));
   $('detailVisit').addEventListener('click', ()=> openVisitSheet(s));
   $('detailShowMap').addEventListener('click', ()=>{
@@ -872,6 +1061,7 @@ let currentView = 'map';
 function showView(v, push){
   if(!(v in VIEWS)) v = 'map';
   currentView = v;
+  $('viewList').classList.remove('on');
   Object.values(VIEWS).forEach(id=>{ if(id) $(id).classList.toggle('on', id===VIEWS[v]); });
   document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('on', t.dataset.view===v));
   if(v==='map') setTimeout(()=> map.invalidateSize(), 0);
@@ -1191,8 +1381,98 @@ function openVisitSheet(s){
   starInput($('visitStars'), visitRating, n=>{ visitRating = n; });
   $('visitSave').innerHTML = v ? '<i class="ri-footprint-fill"></i>記録を更新する' : '<i class="ri-footprint-line"></i>記録する';
   $('visitRemove').hidden = !v && !r;
+  setVisitPhoto({mode:'keep', data:null, existed:false});
+  const mine = (photosByShop.get(s.id) || []).find(p=> p.uid===currentUser.uid);
+  if(mine) setVisitPhoto({mode:'keep', data:mine.image, existed:true});
+  else db.collection('photos').doc(`${s.id}_${currentUser.uid}`).get().then(d=>{
+    if(d.exists && visitShop===s) setVisitPhoto({mode:'keep', data:d.data().image, existed:true});
+  }).catch(()=>{});
   openSheet('visitSheet');
 }
+
+/* ---------- 写真（1人1店1枚。縮小したJPEGをFirestoreに文字で保存する） ---------- */
+let visitPhoto = {mode:'keep', data:null, existed:false};   // mode：keep そのまま ／ new 新しく付ける ／ remove 外す
+function setVisitPhoto(v){
+  visitPhoto = v;
+  const show = v.mode!=='remove' && !!v.data;
+  $('visitPhotoPreview').hidden = !show;
+  if(show) $('visitPhotoPreview').src = v.data; else $('visitPhotoPreview').removeAttribute('src');
+  $('visitPhotoLabel').textContent = show ? '写真を変える' : '写真を選ぶ';
+  $('visitPhotoClear').hidden = !show;
+}
+function resizeImage(file){
+  return new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      let max = 1080, q = 0.78, out = '';
+      for(let i = 0; i < 6; i++){
+        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * k);
+        c.height = Math.round(img.naturalHeight * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        out = c.toDataURL('image/jpeg', q);
+        if(out.length <= 650000) return resolve(out);
+        max = Math.round(max * 0.85);
+        q = Math.max(0.5, q - 0.08);
+      }
+      resolve(null);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(); };
+    img.src = url;
+  });
+}
+$('visitPhotoInput').addEventListener('change', async e=>{
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    const data = await resizeImage(file);
+    if(!data){ showToast('写真が大きすぎます。別の写真を選んでください'); return; }
+    setVisitPhoto({mode:'new', data, existed:visitPhoto.existed});
+  }catch(err){ showToast('この写真は読み込めませんでした'); }
+});
+$('visitPhotoClear').addEventListener('click', ()=> setVisitPhoto({mode:'remove', data:null, existed:visitPhoto.existed}));
+function savePhoto(shopId){
+  const ref = db.collection('photos').doc(`${shopId}_${currentUser.uid}`);
+  if(visitPhoto.mode==='new'){
+    return ref.set({
+      shopId, uid: currentUser.uid, image: visitPhoto.data,
+      userName: (currentUser.displayName || 'ユーザー').slice(0, 60),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(()=> photosByShop.delete(shopId));
+  }
+  if(visitPhoto.mode==='remove' && visitPhoto.existed) return ref.delete().then(()=> photosByShop.delete(shopId));
+  return Promise.resolve();
+}
+
+/* 店ごとの写真。詳細を開いたときに読む */
+const photosByShop = new Map();
+function loadPhotos(shopId){
+  db.collection('photos').where('shopId', '==', shopId).limit(12).get().then(snap=>{
+    const list = snap.docs.map(d=> d.data()).sort((a,b)=> (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+    photosByShop.set(shopId, list);
+    if(detailId===shopId && $('detailPhotos')) $('detailPhotos').innerHTML = photosHtml(shopId);
+  }).catch(()=>{});
+}
+function photosHtml(shopId){
+  const list = photosByShop.get(shopId) || [];
+  if(!list.length) return '';
+  return `<section class="photos"><h3>みんなの写真</h3><div class="photo-strip">${list.map((p, i)=>
+    `<button type="button" data-photo="${i}" aria-label="写真を大きく見る"><img src="${escapeHtml(p.image)}" alt="" loading="lazy"></button>`).join('')}</div></section>`;
+}
+$('detail').addEventListener('click', e=>{
+  const b = e.target.closest('[data-photo]');
+  if(!b || detailId==null) return;
+  const p = (photosByShop.get(detailId) || [])[+b.dataset.photo];
+  if(!p) return;
+  $('photoViewImg').src = p.image;
+  $('photoViewCap').textContent = `${p.userName || 'ユーザー'}さんの写真`;
+  $('photoView').classList.add('open');
+});
+$('photoView').addEventListener('click', e=>{ if(e.target.id!=='photoViewImg') $('photoView').classList.remove('open'); });
 
 /* 行った記録（本人だけ）と評価（公開）をまとめて保存する */
 function saveVisitAndReview(shopId, {ig, rating, comment}){
@@ -1228,10 +1508,10 @@ $('visitSave').addEventListener('click', ()=>{
   const comment = $('visitComment').value.trim();
   if(comment && !visitRating){ showToast('ひとことを残すときは星も付けてください'); return; }
   const had = visits.has(s.id);
-  saveVisitAndReview(s.id, {ig, rating: visitRating, comment}).then(()=>{
+  Promise.all([saveVisitAndReview(s.id, {ig, rating: visitRating, comment}), savePhoto(s.id)]).then(()=>{
     closeSheets();
     showToast(had ? '記録を更新しました' : '行ったに記録しました');
-    if(detailId===s.id) openDetail(s.id, true);
+    if(detailId===s.id){ openDetail(s.id, true); loadPhotos(s.id); }
     renderMypage();
   }).catch(()=> showToast('記録できませんでした'));
 });
@@ -1241,12 +1521,14 @@ $('visitRemove').addEventListener('click', ()=>{
   const uid = currentUser.uid;
   Promise.all([
     db.collection('users').doc(uid).collection('visits').doc(s.id).delete(),
-    myReview(s.id) ? db.collection('reviews').doc(`${s.id}_${uid}`).delete() : null
+    myReview(s.id) ? db.collection('reviews').doc(`${s.id}_${uid}`).delete() : null,
+    visitPhoto.existed ? db.collection('photos').doc(`${s.id}_${uid}`).delete() : null
   ]).then(()=>{
     visits.delete(s.id);
+    photosByShop.delete(s.id);
     closeSheets();
     showToast('記録と評価を消しました');
-    if(detailId===s.id) openDetail(s.id, true);
+    if(detailId===s.id){ openDetail(s.id, true); loadPhotos(s.id); }
     renderMypage();
   }).catch(()=> showToast('消せませんでした'));
 });
@@ -1397,8 +1679,10 @@ function renderMypage(){
       <div class="login-card">
         <p>ログインすると、気になる酒場の保存と<br>閲覧履歴が残せます。</p>
         <button class="btn btn-primary" id="loginBtn"><i class="ri-google-fill"></i>Googleでログイン</button>
-      </div>`;
+      </div>
+      ${installRowHtml() ? `<div class="menu-list">${installRowHtml()}</div>` : ''}`;
     $('loginBtn').addEventListener('click', login);
+    bindInstallRow(body);
     return;
   }
   const photo = currentUser.photoURL;
@@ -1419,10 +1703,13 @@ function renderMypage(){
       <div class="menu-row" data-list="visits"><i class="ri-footprint-line"></i><span>行った酒場</span><i class="ri-arrow-right-s-line"></i></div>
       <div class="menu-row" data-list="saved"><i class="ri-heart-line"></i><span>保存した酒場</span><i class="ri-arrow-right-s-line"></i></div>
       <div class="menu-row" data-list="history"><i class="ri-time-line"></i><span>閲覧履歴</span><i class="ri-arrow-right-s-line"></i></div>
+      ${isAdminUser() ? `<div class="menu-row" data-list="reports"><i class="ri-flag-line"></i><span>届いた報告</span>${reports.length ? `<span class="badge">${reports.length}</span>` : ''}<i class="ri-arrow-right-s-line"></i></div>` : ''}
+      ${installRowHtml()}
     </div>`;
+  bindInstallRow(body);
   $('logoutBtn').addEventListener('click', ()=> auth.signOut());
   $('shareBtn').addEventListener('click', openShareSheet);
-  body.querySelectorAll('.menu-row').forEach(r=> r.addEventListener('click', ()=> openMypageList(r.dataset.list)));
+  body.querySelectorAll('.menu-row[data-list]').forEach(r=> r.addEventListener('click', ()=> openMypageList(r.dataset.list)));
 }
 function myPosts(){
   if(!currentUser) return [];
@@ -1441,6 +1728,13 @@ function showMypageMain(){
 function openMypageList(type){
   const saved = type==='saved';
   const wrap = $('mypageListItems');
+  if(type==='reports'){
+    $('mypageListTitle').textContent = '届いた報告';
+    $('mypageMain').hidden = true;
+    $('mypageList').hidden = false;
+    renderReports();
+    return;
+  }
   if(type==='posted' || type==='visits'){
     const posted = type==='posted';
     $('mypageListTitle').textContent = posted ? '掲載した酒場' : '行った酒場';
@@ -1461,12 +1755,178 @@ function openMypageList(type){
     .orderBy(saved ? 'savedAt' : 'viewedAt', 'desc').get().then(snap=>{
       const shops = snap.docs.map(d=> findShop(d.id)).filter(Boolean);
       wrap.innerHTML = shops.length
-        ? shops.map(shopRow).join('')
-        : `<div class="empty">${saved ? 'まだ保存した酒場がありません' : 'まだ閲覧履歴がありません'}</div>`;
+        ? (saved ? `<div class="list-actions"><button class="btn btn-main" id="shareListBtn"><i class="ri-share-forward-line"></i>行きたいリストを共有する</button></div>` : '')
+          + shops.map(shopRow).join('')
+        : `<div class="empty">${saved ? 'まだ保存した酒場がありません<br>お店のハートを押すと保存できます' : 'まだ閲覧履歴がありません'}</div>`;
+      if(saved && shops.length) $('shareListBtn').addEventListener('click', ()=> shareList(shops));
       bindRows(wrap);
     }).catch(()=>{ wrap.innerHTML = `<div class="empty">読み込みに失敗しました</div>`; });
 }
 $('mypageListBack').addEventListener('click', showMypageMain);
+
+/* ---------- 情報の誤り・閉店の報告 ---------- */
+const REPORT_LABEL = {closed:'閉店している', moved:'場所・住所が違う', wrong:'営業時間などの情報が違う', duplicate:'同じ店が2つ載っている', other:'その他'};
+let reportShop = null;
+function openReportSheet(s){
+  if(!currentUser){ showToast('報告するにはログインしてください'); return; }
+  reportShop = s;
+  $('reportTitle').textContent = `「${s.name}」の情報を報告`;
+  document.querySelectorAll('input[name=reportType]').forEach(r=> r.checked = false);
+  $('reportNote').value = '';
+  $('reportSend').disabled = true;
+  openSheet('reportSheet');
+}
+$('reportTypes').addEventListener('change', ()=>{ $('reportSend').disabled = false; });
+$('reportSend').addEventListener('click', ()=>{
+  const type = document.querySelector('input[name=reportType]:checked')?.value;
+  if(!reportShop || !type || !currentUser) return;
+  const data = {
+    shopId: reportShop.id, shopName: reportShop.name.slice(0, 60), type,
+    uid: currentUser.uid, userName: (currentUser.displayName || 'ユーザー').slice(0, 60),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  const note = $('reportNote').value.trim();
+  if(note) data.note = note;
+  $('reportSend').disabled = true;
+  db.collection('reports').add(data).then(()=>{
+    closeSheets();
+    showToast('報告しました。ありがとうございます');
+  }).catch(()=>{
+    $('reportSend').disabled = false;
+    showToast('報告できませんでした');
+  });
+});
+
+/* 管理者（Shiryu）だけ、届いた報告を読んで片付けられる */
+function isAdminUser(){ return !!(currentUser && currentUser.email===ADMIN_EMAIL); }
+let reports = [], reportsUnsub = null;
+function watchReports(){
+  if(reportsUnsub){ reportsUnsub(); reportsUnsub = null; }
+  reports = [];
+  if(!isAdminUser()) return;
+  reportsUnsub = db.collection('reports').onSnapshot(snap=>{
+    reports = snap.docs.map(d=> Object.assign({id: d.id}, d.data()))
+      .sort((a,b)=> (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+    renderMypage();
+    if(!$('mypageList').hidden && $('mypageListTitle').textContent==='届いた報告') renderReports();
+  }, ()=>{});
+}
+function renderReports(){
+  const wrap = $('mypageListItems');
+  const fmt = ts=> ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ja-JP') : '';
+  wrap.innerHTML = reports.length ? reports.map(r=> `
+    <div class="report-item">
+      <b>${escapeHtml(r.shopName)}</b>：${escapeHtml(REPORT_LABEL[r.type] || r.type)}
+      ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ''}
+      <div class="report-meta">${escapeHtml(r.userName || '')}さん ・ ${fmt(r.createdAt)}${findShop(r.shopId) ? '' : ' ・ 店はもう地図にありません'}</div>
+      <div class="report-actions">
+        ${findShop(r.shopId) ? `<button class="btn btn-secondary" data-open="${escapeHtml(r.shopId)}">店を見る</button>` : ''}
+        <button class="btn btn-primary" data-done="${escapeHtml(r.id)}">対応済みにする</button>
+      </div>
+    </div>`).join('') : `<div class="empty">届いている報告はありません</div>`;
+  wrap.querySelectorAll('[data-open]').forEach(b=> b.addEventListener('click', ()=> openDetail(b.dataset.open)));
+  wrap.querySelectorAll('[data-done]').forEach(b=> b.addEventListener('click', ()=>{
+    db.collection('reports').doc(b.dataset.done).delete().then(()=> showToast('対応済みにしました')).catch(()=> showToast('消せませんでした'));
+  }));
+}
+
+/* ---------- 行きたいリストの共有 ----------
+   保存した店のIDをURLに入れて送る（?list=ID,ID&by=名前）。開いた人はログインしなくても見られる */
+function shareList(shops){
+  const ids = shops.slice(0, 60).map(s=> s.id);
+  const by = (currentUser?.displayName || '').slice(0, 20);
+  const url = SITE_URL + '?list=' + ids.map(encodeURIComponent).join(',') + (by ? '&by=' + encodeURIComponent(by) : '');
+  const text = `行きたい酒場リスト（${ids.length}軒）`;
+  if(navigator.share){
+    navigator.share({title: 'オサケノミタイ地図', text, url}).catch(()=>{});
+    return;
+  }
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
+    .then(()=> showToast('リンクをコピーしました。LINEなどに貼って送れます'))
+    .catch(()=> prompt('このリンクをコピーして送ってください', url));
+}
+let sharedList = null;   // {ids:[...], by}
+(function readSharedList(){
+  const q = new URLSearchParams(location.search);
+  const list = q.get('list');
+  if(!list) return;
+  const ids = list.split(',').map(x=> x.trim()).filter(Boolean).slice(0, 60);
+  if(ids.length) sharedList = {ids, by: (q.get('by') || '').slice(0, 20)};
+})();
+function renderSharedList(){
+  if(!sharedList) return;
+  const shops = sharedList.ids.map(findShop).filter(Boolean);
+  $('listTitle').textContent = sharedList.by ? `${sharedList.by}さんの行きたいリスト` : '行きたいリスト';
+  const body = $('listBody');
+  body.innerHTML = `
+    <p class="list-lead">${shops.length}軒の酒場が共有されました。</p>
+    ${shops.length ? `<div class="list-actions">
+      <button class="btn btn-main" id="listShowMap"><i class="ri-map-2-line"></i>地図で見る</button>
+      <button class="btn btn-secondary" id="listSaveAll"><i class="ri-heart-line"></i>自分の保存にまとめて追加</button>
+    </div>` : ''}
+    ${shops.map(shopRow).join('') || '<div class="empty">リストの店が見つかりませんでした</div>'}`;
+  bindRows(body);
+  if(!shops.length) return;
+  $('listShowMap').addEventListener('click', ()=>{
+    Object.assign(state, {cat:'all', area:'', q:'', openNow:false, ids: new Set(shops.map(s=> s.id))});
+    closeSharedList();
+    showView('map', true);
+    render();
+    map.fitBounds(L.latLngBounds(shops.map(s=> [s.lat, s.lng])), {padding:[48, 48], maxZoom:16});
+  });
+  $('listSaveAll').addEventListener('click', ()=>{
+    if(!currentUser){ showToast('保存するにはログインしてください'); return; }
+    const batch = db.batch();
+    shops.forEach(s=>{
+      savedIds.add(s.id);
+      batch.set(db.collection('users').doc(currentUser.uid).collection('saved').doc(s.id),
+        {shopId: s.id, savedAt: firebase.firestore.FieldValue.serverTimestamp()});
+    });
+    batch.commit().then(()=> showToast(`${shops.length}軒を保存しました`)).catch(()=> showToast('保存できませんでした'));
+    render();
+    renderMypage();
+    renderSharedList();
+  });
+}
+function openSharedList(){
+  if(!sharedList) return;
+  renderSharedList();
+  $('viewList').classList.add('on');
+}
+function closeSharedList(){
+  $('viewList').classList.remove('on');
+  history.replaceState(null, '', location.pathname + location.hash);
+}
+$('listBack').addEventListener('click', closeSharedList);
+
+/* ---------- ホーム画面に追加（PWA） ---------- */
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); installPrompt = e; renderMypage(); });
+window.addEventListener('appinstalled', ()=>{ installPrompt = null; showToast('ホーム画面に追加しました'); renderMypage(); });
+function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }
+function installRowHtml(){
+  if(isStandalone()) return '';
+  return `<div class="menu-row" id="installRow"><i class="ri-smartphone-line"></i><span>ホーム画面に追加</span><i class="ri-arrow-right-s-line"></i></div>`;
+}
+function bindInstallRow(root){
+  const row = root.querySelector('#installRow');
+  if(row) row.addEventListener('click', openInstall);
+}
+function openInstall(){
+  if(installPrompt){
+    installPrompt.prompt();
+    installPrompt.userChoice.finally(()=>{ installPrompt = null; renderMypage(); });
+    return;
+  }
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints > 1);
+  $('installSteps').innerHTML = ios
+    ? '<li>Safariで開く（LINEなどのアプリ内ブラウザでは追加できません）</li><li>画面下の共有ボタン（四角から矢印が出ているアイコン）を押す</li><li>「ホーム画面に追加」を選ぶ</li>'
+    : '<li>Chromeで開く</li><li>右上のメニュー（︙）を押す</li><li>「ホーム画面に追加」または「アプリをインストール」を選ぶ</li>';
+  openSheet('installSheet');
+}
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
 
 auth.onAuthStateChanged(user=>{
   currentUser = user;
@@ -1474,7 +1934,9 @@ auth.onAuthStateChanged(user=>{
   historyCount = 0;
   visits = new Map();
   if(user) loadUserData(user.uid);
+  watchReports();
   render();
+  if(sharedList && $('viewList').classList.contains('on')) renderSharedList();
   updateDetailSaveBtn();
   renderMypage();
   renderPost();
@@ -1485,6 +1947,7 @@ renderMypage();
 renderPost();
 render();
 showView(location.hash.slice(1) || 'map', false);
+openSharedList();
 setTimeout(()=> $('splash').classList.add('hide'), 700);
 </script>
 </body>
