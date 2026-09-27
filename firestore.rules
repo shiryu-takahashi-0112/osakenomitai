@@ -17,13 +17,25 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // ジャンル（index.html の GENRES と同じキー。増やすときは両方を直す）
+    function genres() {
+      return ['izakaya', 'taishu', 'tachinomi', 'sakaya', 'snack',
+              'yakitori', 'motsu', 'yakiniku', 'kushikatsu', 'oden',
+              'seafood', 'chuka', 'korean', 'ethnic', 'bistro',
+              'sake', 'shochu', 'wine', 'craftbeer', 'whisky', 'bar'];
+    }
+
     // ユーザーが投稿した酒場。誰でも見られ、ログインした人が投稿できる（すぐ公開）
+    // cat はメインのジャンル、cats は最大3つのジャンル（先頭が cat）。hpId はホットペッパーのお店ID
     function validShop(d) {
-      return d.keys().hasOnly(['name', 'area', 'cat', 'addr', 'walk', 'price', 'hours', 'closed', 'desc',
+      return d.keys().hasOnly(['name', 'area', 'cat', 'cats', 'hpId', 'addr', 'walk', 'price', 'hours', 'closed', 'desc',
                                'lat', 'lng', 'ig', 'createdBy', 'createdByName', 'createdAt', 'updatedAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 60
         && d.area is string && d.area.size() > 0 && d.area.size() <= 30
-        && d.cat in ['izakaya', 'sakaya', 'bar']
+        && d.cat in genres()
+        && (!('cats' in d) || (d.cats is list && d.cats.size() >= 1 && d.cats.size() <= 3
+                               && d.cats.hasOnly(genres()) && d.cats[0] == d.cat))
+        && (!('hpId' in d) || (d.hpId is string && d.hpId.size() > 0 && d.hpId.size() <= 20))
         && d.addr is string && d.addr.size() > 0 && d.addr.size() <= 120
         && d.lat is number && d.lat > 20 && d.lat < 46
         && d.lng is number && d.lng > 122 && d.lng < 154
