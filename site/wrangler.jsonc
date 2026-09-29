@@ -1,0 +1,18 @@
+{
+  "$schema": "https://unpkg.com/wrangler@latest/config-schema.json",
+  // osakenomitai.com の配信設定。2つのアプリの静的ファイルだけを配る（Workerのプログラムは無い）。
+  //   /                … オサケノミタイ（このリポジトリ）
+  //   /sakenotsumami/  … サケノツマミ（shiryu-takahashi-0112/sakenotsumami）
+  // 静的ファイルの配信は、Workersの無料枠（1日10万回）を消費しない。
+  // 組み立てと公開は site/build.sh と .github/workflows/deploy-site.yml が行う（どちらのリポジトリにpushしても動く）。
+  "name": "osakenomitai-com",
+  "compatibility_date": "2026-09-10",
+  "assets": {
+    "directory": "../dist",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "osakenomitai.com", "custom_domain": true }
+  ],
+  "workers_dev": false
+}
