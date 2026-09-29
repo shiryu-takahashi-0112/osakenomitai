@@ -1,5 +1,14 @@
 # オサケノミタイ
 
+## 公開
+
+- 本番は **https://osakenomitai.com/** （2026-09-29に取得。登録はSquarespace、DNSと配信はCloudflareの無料プラン）。
+- `/` にオサケノミタイ、`/sakenotsumami/` に姉妹アプリのサケノツマミを置いている。どちらのリポジトリに push しても、`.github/workflows/deploy-site.yml` が2つを組み立てて（`site/build.sh`）Cloudflareに公開する。静的ファイルの配信だけなので、Workersの無料枠は使わない。
+- 認証は GitHub Secrets の `CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`（両方のリポジトリに登録済み）。
+- 公開してはいけないもの（`CLAUDE.md`、`design/`、ルール、ツール類）は `site/build.sh` で除いている。新しく非公開のファイルを置くときは、ここにも足す。
+- 旧URL（shiryu-takahashi-0112.github.io/osakenomitai/）も残っているが、開くと新しいURLへ移る。
+- www は Cloudflare のリダイレクトルールで osakenomitai.com へ301。アクセス数は Cloudflare Web Analytics（自動設定）。
+
 ## ロゴの方針
 
 2026-09-26〜27のロゴ検討で、Shiryuから受けた指摘をまとめる。

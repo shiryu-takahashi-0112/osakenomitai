@@ -2,6 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script>
+// 旧URL（GitHub Pages）で開かれたら、新しいドメインへ移す（2026-09-29にosakenomitai.comへ移転）
+if(location.hostname==='shiryu-takahashi-0112.github.io') location.replace('https://osakenomitai.com/'+location.pathname.replace(/^\/osakenomitai\/?/,'')+location.search+location.hash);
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>オサケノミタイ地図 | 酒場ガイド</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -1585,7 +1589,7 @@ $('visitRemove').addEventListener('click', ()=>{
 
 /* ---------- 記録のシェア画像（1080×1920、ストーリー用） ----------
    canvasに描くのでアイコンフォントは使わない（MACROHACKのルールと同じ） */
-const SITE_URL = 'https://shiryu-takahashi-0112.github.io/osakenomitai/';
+const SITE_URL = 'https://osakenomitai.com/';
 let shareBlob = null;
 
 function topAreas(){
