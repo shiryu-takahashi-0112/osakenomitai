@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // オサケノミタイ地図のFirestoreルール。
-// 反映はFirebaseコンソール（osakenomitai-map → Firestore → ルール）に、このファイルの中身をそのまま貼って公開する。
+// main に push すると GitHub Actions（.github/workflows/firestore-rules.yml）が Firebase（osakenomitai-map）へ自動で公開する。
 service cloud.firestore {
   match /databases/{database}/documents {
 

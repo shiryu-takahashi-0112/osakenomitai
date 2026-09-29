@@ -1,0 +1,48 @@
+name: Firestore rules
+
+# firestore.rules を main に push すると、Firebase（osakenomitai-map）へ自動で公開する。
+# 認証には GitHub Secrets の FIREBASE_SERVICE_ACCOUNT（サービスアカウントの鍵JSON）を使う。
+# 未登録のあいだは何もせずに終わる。手動で流すときは Actions タブか
+#   gh workflow run firestore-rules.yml
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+      - firebase.json
+      - .firebaserc
+      - .github/workflows/firestore-rules.yml
+  workflow_dispatch:
+
+concurrency:
+  group: firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secret
+        id: secret
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT が未登録のため、ルールの公開をスキップしました。"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.secret.outputs.ok == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.secret.outputs.ok == 'true'
+        with:
+          node-version: 20
+      - uses: google-github-actions/auth@v2
+        if: steps.secret.outputs.ok == 'true'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Deploy Firestore rules
+        if: steps.secret.outputs.ok == 'true'
+        run: npx --yes firebase-tools@latest deploy --only firestore:rules --project osakenomitai-map --non-interactive
