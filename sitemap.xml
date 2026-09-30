@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- osakenomitai.com のサイトマップの入口。/ はオサケノミタイ、個々のレシピはサケノツマミ側のサイトマップにある。
+     2019年ごろにこのドメインを使っていた前の持ち主のサイトマップがSearch Consoleに残っていたため、同じURLに今の中身を置いている。 -->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>https://osakenomitai.com/sitemap-root.xml</loc></sitemap>
+  <sitemap><loc>https://osakenomitai.com/sakenotsumami/sitemap.xml</loc></sitemap>
+</sitemapindex>
