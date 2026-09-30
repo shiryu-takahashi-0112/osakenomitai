@@ -50,9 +50,9 @@
 
 ## Firestoreのルールの反映
 
-`firestore.rules` を `main` に push すると、GitHub Actions（`.github/workflows/firestore-rules.yml`）が Firebase（`osakenomitai-map`）へ自動で公開する。
-Firebaseコンソールに貼って「公開」を押す運用は、2026-09-27にやめた（Coworkの自動実行では「公開」を押せず、毎回Shiryuの手が必要だったため）。
+**今は自動では公開されない。** `firestore.rules` を変えたら、Firebaseコンソール（osakenomitai-map → Firestore → ルール）に貼って「公開」を押す。
+「公開」はCoworkの自動実行では押せないので、Shiryuに押してもらう。
 
-- 認証は GitHub Secrets の `FIREBASE_SERVICE_ACCOUNT`（サービスアカウントの鍵JSON）。未登録のあいだ、ワークフローは警告を出して何もせずに終わる。
-- 手動で流すときは `gh workflow run firestore-rules.yml`。
+- `main` に push すると動く GitHub Actions（`.github/workflows/firestore-rules.yml`）はあるが、認証に使う GitHub Secrets の `FIREBASE_SERVICE_ACCOUNT` が未登録のため、警告を出して何もせずに終わる。
+- 登録用のCoworkタスク（サービスアカウントを作って鍵をSecretに入れる）は、一度も実行されないまま2026-09-30に削除した。自動にしたくなったら、`~/.claude-work/scheduled-tasks/osakenomitai-firestore-rules-service-account/SKILL.md` から作り直せる。
 - ルールを変えたら、`index.html` 側（`GENRES` など）と食い違っていないかも確認する。
