@@ -16,5 +16,7 @@
   ],
   "workers_dev": false,
   // stg（main 以外のブランチの確認用URL）。.github/workflows/deploy-preview.yml が wrangler preview で出す。本番には影響しない。
+  // preview_urls は本番のデプロイ（main）で反映される。workers_dev が false だと既定で無効になるため明示する。
+  "preview_urls": true,
   "previews": {}
 }
