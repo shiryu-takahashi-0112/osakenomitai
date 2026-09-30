@@ -5,6 +5,7 @@
 - 本番は **https://osakenomitai.com/** （2026-09-29に取得。登録はSquarespace、DNSと配信はCloudflareの無料プラン）。
 - `/` にオサケノミタイ、`/sakenotsumami/` に姉妹アプリのサケノツマミを置いている。どちらのリポジトリに push しても、`.github/workflows/deploy-site.yml` が2つを組み立てて（`site/build.sh`）Cloudflareに公開する。静的ファイルの配信だけなので、Workersの無料枠は使わない。
 - 認証は GitHub Secrets の `CLOUDFLARE_API_TOKEN`・`CLOUDFLARE_ACCOUNT_ID`（両方のリポジトリに登録済み）。
+- **stg ＝ 作業ブランチの確認用URL**（2026-09-30。MACROHACKと同じ考え方）。`main` 以外のブランチに push すると、`.github/workflows/deploy-preview.yml` が Cloudflare の Worker Previews に出す（本番は変わらない。`site/wrangler.jsonc` の `previews` が要る）。URLは Actions の Summary とコミットの「stg」ステータスに出る。もう片方のリポジトリに同じ名前のブランチがあれば組み合わせる。変更は stg と本番の両方で確かめる。stg ではログインできない（Firebaseの承認済みドメインに無いため）。
 - 公開してはいけないもの（`CLAUDE.md`、`design/`、ルール、ツール類）は `site/build.sh` で除いている。新しく非公開のファイルを置くときは、ここにも足す。
 - 旧URL（shiryu-takahashi-0112.github.io/osakenomitai/）も残っているが、開くと新しいURLへ移る。
 - www は Cloudflare のリダイレクトルールで osakenomitai.com へ301。アクセス数は Cloudflare Web Analytics（自動設定）。

@@ -14,5 +14,7 @@
   "routes": [
     { "pattern": "osakenomitai.com", "custom_domain": true }
   ],
-  "workers_dev": false
+  "workers_dev": false,
+  // stg（main 以外のブランチの確認用URL）。.github/workflows/deploy-preview.yml が wrangler preview で出す。本番には影響しない。
+  "previews": {}
 }
