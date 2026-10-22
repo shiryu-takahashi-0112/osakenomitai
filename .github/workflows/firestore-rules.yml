@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.secret.outputs.ok == 'true'
         with:
-          node-version: 20
+          node-version: 22
       - uses: google-github-actions/auth@v2
         if: steps.secret.outputs.ok == 'true'
         with:
