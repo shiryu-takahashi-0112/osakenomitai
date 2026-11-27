@@ -70,5 +70,7 @@
 	<string>地図に現在地を出し、近くの酒場を探すために使います。</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>酒場記録の画像を写真に保存するために使います。</string>
 </dict>
 </plist>

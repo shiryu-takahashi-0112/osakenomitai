@@ -1673,6 +1673,16 @@ async function openShareSheet(){
 $('shareImgBtn').addEventListener('click', async ()=>{
   if(!shareBlob){ showToast('画像を作っています…'); return; }
   const file = new File([shareBlob], 'osakenomitai-record.png', {type:'image/png'});
+  if(isNativeApp()){
+    // アプリの中ではダウンロードが使えないので、端末に書いてから共有シートを出す（「画像を保存」もここから選べる）
+    try{
+      const {Filesystem, Share} = window.Capacitor.Plugins;
+      const data = await new Promise((ok, ng)=>{ const r = new FileReader(); r.onload = ()=> ok(String(r.result).split(',')[1]); r.onerror = ng; r.readAsDataURL(shareBlob); });
+      const w = await Filesystem.writeFile({path: file.name, data, directory: 'CACHE'});
+      await Share.share({files: [w.uri], text: 'オサケノミタイ地図', url: SITE_URL});
+    }catch(e){}
+    return;
+  }
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file], text:'オサケノミタイ地図', url: SITE_URL}); }catch(e){}
     return;
@@ -1907,6 +1917,10 @@ function shareList(shops){
   const by = (currentUser?.displayName || '').slice(0, 20);
   const url = SITE_URL + '?list=' + ids.map(encodeURIComponent).join(',') + (by ? '&by=' + encodeURIComponent(by) : '');
   const text = `行きたい酒場リスト（${ids.length}軒）`;
+  if(isNativeApp() && window.Capacitor.Plugins.Share){
+    window.Capacitor.Plugins.Share.share({title: 'オサケノミタイ地図', text, url}).catch(()=>{});
+    return;
+  }
   if(navigator.share){
     navigator.share({title: 'オサケノミタイ地図', text, url}).catch(()=>{});
     return;
