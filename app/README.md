@@ -30,8 +30,8 @@ Firebase のコンソール → プロジェクト `osakenomitai-map` → プロ
 
 **iPhone**
 - バンドルID：`com.osakenomitai.app`
-- 出てくる `GoogleService-Info.plist` を Xcode で `App/App/` に入れる（「Copy items if needed」にチェック）。
-- `GoogleService-Info.plist` の `REVERSED_CLIENT_ID` の値を、Xcode の App → Info → URL Types に足す（URL Schemes に貼る）。
+- 出てくる `GoogleService-Info.plist` を `app/ios/App/App/` に置く（Xcode のプロジェクトには、この場所のファイルを読むよう登録済み）。
+- Mac で `bash app/tools/ios-google-scheme.sh` を実行する（Google ログインのあとアプリに戻るための設定を Info.plist に足す）。
 
 どちらのファイルも、ウェブ版の `firebaseConfig` と同じく公開してよい値なので、リポジトリに入れてよい。
 
