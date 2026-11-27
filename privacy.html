@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<script>
+// 旧URL（GitHub Pages）で開かれたら、新しいドメインへ移す（2026-09-29にosakenomitai.comへ移転）
+if(location.hostname==='shiryu-takahashi-0112.github.io') location.replace('https://osakenomitai.com/'+location.pathname.replace(/^\/osakenomitai\/?/,'')+location.search+location.hash);
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>プライバシーポリシー｜オサケノミタイ地図</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#121212;--muted:rgba(18,18,18,.6);--line:rgba(18,18,18,.12);--soft:#f7f7f5;--main:#F2C600;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:#fff;color:var(--ink);font-family:'Zen Kaku Gothic New',sans-serif;font-size:15px;line-height:1.9;}
+  .page{max-width:720px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top,0px)) 16px 64px;}
+  .back{display:inline-block;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;margin-bottom:20px;}
+  h1{font-size:24px;font-weight:900;margin:0 0 6px;}
+  .date{font-size:12.5px;color:var(--muted);margin:0 0 24px;}
+  h2{font-size:17px;font-weight:900;margin:32px 0 10px;display:flex;align-items:center;gap:8px;}
+  h2:before{content:'';width:4px;height:16px;border-radius:2px;background:var(--main);}
+  p{margin:0 0 10px;}
+  ul{margin:0 0 10px;padding-left:1.3em;}
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin:0 0 12px;}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.7;min-width:520px;}
+  th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line);}
+  th{background:var(--soft);font-size:12px;color:var(--muted);}
+  tr:last-child td{border-bottom:none;}
+  code{background:var(--soft);padding:1px 5px;border-radius:4px;font-size:12.5px;}
+  a{color:inherit;text-decoration-color:var(--main);text-decoration-thickness:2px;text-underline-offset:3px;}
+</style>
+</head>
+<body>
+<main class="page">
+<a class="back" href="./">← オサケノミタイ地図へもどる</a>
+<h1>プライバシーポリシー</h1>
+<p class="date">制定日：2026年11月27日</p>
+<p>オサケノミタイ地図（ウェブサイトと、App Store・Google Play で配るアプリ。以下「当サービス」）は、酒場を地図で探し、利用者どうしで掲載・評価できる無料のサービスです。<br>
+当サービスの運営者（以下「運営者」）は、個人情報の保護に関する法律その他の関係法令を守り、利用者の情報を次のとおり取り扱います。</p>
+
+<h2>1. 取得する情報</h2>
+<div class="scroll"><table>
+<thead><tr><th>種類</th><th>内容</th><th>取得する場面</th></tr></thead>
+<tbody>
+<tr><td>アカウント情報</td><td>Googleアカウントの識別子・表示名・メールアドレス・プロフィール写真のURL。パスワードは受け取りません。</td><td>Googleでログインしたとき</td></tr>
+<tr><td>掲載した酒場</td><td>店名・住所・地図上の位置・ジャンル・営業時間などの店の情報と、掲載した人の表示名。<strong>ほかの利用者にも公開されます。</strong></td><td>酒場を掲載したとき</td></tr>
+<tr><td>評価・口コミ・写真</td><td>星の数・口コミの文・写真と、投稿した人の表示名。<strong>ほかの利用者にも公開されます。</strong></td><td>行った酒場を評価したとき</td></tr>
+<tr><td>行った記録・保存・閲覧履歴</td><td>行った酒場、保存した酒場、見た酒場と、その日時。本人だけが見られます。</td><td>ログインして使ったとき</td></tr>
+<tr><td>報告</td><td>報告の種類・内容と、報告した人の表示名。運営者だけが見られます。</td><td>情報の誤りや不適切な投稿を報告したとき</td></tr>
+<tr><td>現在地</td><td>端末の位置情報。地図に現在地を出すためだけに端末の中で使い、運営者のサーバーには送りません。許可は端末の設定でいつでも取り消せます。</td><td>現在地のボタンを押したとき</td></tr>
+<tr><td>アクセス情報</td><td>IPアドレス、ブラウザの種類、閲覧日時など、ページを配信するサーバーが自動で記録する情報</td><td>ウェブサイトを開いたとき</td></tr>
+</tbody></table></div>
+<p>次の情報は、利用者の端末にだけ保存します。運営者は見ることができません。</p>
+<ul>
+<li><code>osakenomitai.blocked</code>：「表示しない」にした利用者の識別子</li>
+</ul>
+
+<h2>2. 利用目的</h2>
+<ul>
+<li>ログインした本人を確かめ、行った記録・保存・閲覧履歴を複数の端末で表示するため</li>
+<li>掲載された酒場・評価・写真を、地図でほかの利用者に見せるため</li>
+<li>報告を受けて情報を直し、決まりに合わない投稿を消すため</li>
+<li>不正な利用を防ぎ、サービスを安全に運営するため</li>
+<li>サービスの改善のため（アクセス数などを、個人を特定しない形で集計します）</li>
+</ul>
+<p>この目的を超えて利用する場合は、あらかじめ利用者の同意を得ます。広告のために情報を使うことはありません。</p>
+
+<h2>3. 第三者への提供</h2>
+<p>法令に基づく場合などを除き、利用者の同意なく個人情報を第三者に提供しません。<br>
+取得した情報を販売することはありません。</p>
+
+<h2>4. 利用している外部サービス</h2>
+<div class="scroll"><table>
+<thead><tr><th>サービス</th><th>提供事業者</th><th>役割</th></tr></thead>
+<tbody>
+<tr><td>Firebase Authentication / Cloud Firestore</td><td>Google LLC</td><td>ログイン、掲載・評価・写真・記録の保管</td></tr>
+<tr><td>Cloudflare Workers / Cloudflare Web Analytics</td><td>Cloudflare, Inc.</td><td>ウェブサイトの配信、アクセス状況の集計（Cookieを使わず、個人を特定しない形）</td></tr>
+<tr><td>OpenFreeMap・国土地理院の地図</td><td>OpenFreeMap、国土地理院</td><td>地図の表示</td></tr>
+<tr><td>国土地理院 住所検索</td><td>国土地理院</td><td>掲載するときに入力した住所から、地図上の位置を調べる</td></tr>
+<tr><td>Google Fonts / jsDelivr / unpkg</td><td>Google LLC ほか</td><td>書体・アイコン・プログラムの配信</td></tr>
+</tbody></table></div>
+<p>これらのサービスの利用に伴い、情報が日本国外のサーバーで取り扱われる場合があります。<br>
+各サービスでの情報の取り扱いは、それぞれの事業者のプライバシーポリシーに従います。</p>
+
+<h2>5. 安全管理</h2>
+<ul>
+<li>通信はすべて暗号化（HTTPS）しています。</li>
+<li>行った記録・保存・閲覧履歴は、ログインした本人だけが読み書きできるよう、アクセスを制限しています。</li>
+<li>報告は、送信だけができ、運営者以外は読めないよう、アクセスを制限しています。</li>
+</ul>
+
+<h2>6. 保管期間と退会</h2>
+<p>情報は、利用者が当サービスを使っている間保管します。<br>
+<strong>マイページの「退会する（アカウントを削除）」から、いつでも退会できます。</strong>退会すると、行った記録・保存・閲覧履歴・評価・口コミ・写真とアカウントを削除します。<br>
+掲載した酒場は、みんなの地図の情報として残し、掲載した人の名前を「退会したユーザー」に変えます。消したい場合は、下のお問い合わせ先からご連絡ください。<br>
+送った報告は、対応に必要な間だけ保管し、不要になったら削除します。</p>
+
+<h2>7. 改定</h2>
+<p>このポリシーは、必要に応じて改定します。<br>
+改定したときは、このページで改定日とあわせてお知らせします。</p>
+
+<h2>お問い合わせ</h2>
+<p>運営者：高橋 子竜（Shiryu Takahashi）<br>
+お問い合わせは、<a href="https://www.instagram.com/osakenomitai.12/">InstagramのDM（@osakenomitai.12）</a>からお願いします。</p>
+</main>
+</body>
+</html>

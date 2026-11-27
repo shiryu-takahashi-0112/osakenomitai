@@ -207,6 +207,13 @@ if(location.hostname==='shiryu-takahashi-0112.github.io') location.replace('http
   .review-head{display:flex;align-items:center;gap:8px;font-size:13px;}
   .review-name{font-weight:700;}
   .review-stars{color:var(--main);font-size:14px;letter-spacing:-1px;}
+  .review-more{border:none;background:none;color:var(--muted-2);font-size:16px;padding:0 0 0 4px;cursor:pointer;line-height:1;}
+  .photo-view-more{margin-top:14px;border:1px solid rgba(255,255,255,.35);background:none;color:#fff;font-size:12.5px;border-radius:999px;padding:6px 14px;cursor:pointer;display:inline-flex;gap:4px;align-items:center;}
+  .danger-row{color:#c0392b;}
+  .legal-note{font-size:11.5px;color:var(--muted-2);text-align:center;margin:10px 0 0;line-height:1.7;}
+  .legal-note a{color:inherit;}
+  .legal-links{display:flex;justify-content:center;gap:16px;margin:22px 0 8px;font-size:12px;}
+  .legal-links a{color:var(--muted-2);}
   .review-date{margin-left:auto;color:var(--muted-2);font-size:11.5px;}
   .review-comment{font-size:13.5px;line-height:1.8;margin-top:6px;white-space:pre-wrap;word-break:break-word;}
   .dup-actions{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
@@ -478,6 +485,7 @@ if(location.hostname==='shiryu-takahashi-0112.github.io') location.replace('http
     </div>
     <div style="margin-top:16px">
       <button class="btn btn-main" id="visitSave"><i class="ri-footprint-line"></i>行ったに記録する</button>
+      <p class="legal-note">評価・口コミ・写真は、ほかの人にも公開されます。<a href="https://osakenomitai.com/terms.html" target="_blank" rel="noopener">利用規約</a>に合わないものは消します。</p>
       <button class="btn btn-secondary" id="visitRemove" hidden>記録と評価を消す</button>
     </div>
   </div>
@@ -509,6 +517,15 @@ if(location.hostname==='shiryu-takahashi-0112.github.io') location.replace('http
       <button class="btn btn-primary" id="reportSend" disabled><i class="ri-flag-line"></i>報告する</button>
     </div>
   </div>
+  <div class="bsheet" id="ugcSheet">
+    <div class="bsheet-grip"></div>
+    <h3 id="ugcTitle">この投稿について</h3>
+    <p class="sub">報告は管理者が確認し、決まりに合わないものは消します。報告の内容はほかの人には見えません。</p>
+    <div class="menu-list">
+      <div class="menu-row" id="ugcReport"><i class="ri-flag-line"></i><span>不適切な内容として報告する</span><i class="ri-arrow-right-s-line"></i></div>
+      <div class="menu-row" id="ugcBlock"><i class="ri-eye-off-line"></i><span>この人の口コミと写真を表示しない</span><i class="ri-arrow-right-s-line"></i></div>
+    </div>
+  </div>
   <div class="bsheet" id="installSheet">
     <div class="bsheet-grip"></div>
     <h3>ホーム画面に追加</h3>
@@ -519,6 +536,7 @@ if(location.hostname==='shiryu-takahashi-0112.github.io') location.replace('http
     <button class="photo-view-close" id="photoViewClose" aria-label="閉じる"><i class="ri-close-line"></i></button>
     <img id="photoViewImg" alt="">
     <div class="photo-view-cap" id="photoViewCap"></div>
+    <button class="photo-view-more" id="photoViewMore" type="button"><i class="ri-flag-line"></i>報告・表示しない</button>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -1065,8 +1083,42 @@ function openDetail(id, refresh){
   if(!refresh) $('detail').scrollTop = 0;
   $('detail').classList.add('open');
 }
+/* ---------- 口コミ・写真の報告と非表示（ストアの審査で求められる） ---------- */
+const BLOCK_KEY = 'osakenomitai.blocked';
+let blockedUids = new Set();
+try{ blockedUids = new Set(JSON.parse(localStorage.getItem(BLOCK_KEY) || '[]')); }catch(e){}
+function isBlocked(uid){ return !!uid && blockedUids.has(uid) && !(currentUser && currentUser.uid===uid); }
+let ugcTarget = null; // {kind:'review'|'photo', shopId, uid, userName, text}
+function openUgcSheet(t){
+  ugcTarget = t;
+  $('ugcTitle').textContent = `${t.userName || 'ユーザー'}さんの${t.kind==='photo' ? '写真' : '口コミ'}`;
+  openSheet('ugcSheet');
+}
+$('ugcReport').addEventListener('click', ()=>{
+  const t = ugcTarget;
+  if(!t) return;
+  if(!currentUser){ showToast('報告するにはログインしてください'); return; }
+  const s = findShop(t.shopId);
+  const note = `【${t.kind==='photo' ? '写真' : '口コミ'}】${t.userName || 'ユーザー'}さん（${t.uid}）${t.text ? '：' + t.text : ''}`.slice(0, 300);
+  db.collection('reports').add({
+    shopId: String(t.shopId).slice(0, 40), shopName: (s?.name || '').slice(0, 60), type: 'other', note,
+    uid: currentUser.uid, userName: (currentUser.displayName || 'ユーザー').slice(0, 60),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(()=>{ closeSheets(); showToast('報告しました。ありがとうございます'); })
+    .catch(()=> showToast('報告できませんでした'));
+});
+$('ugcBlock').addEventListener('click', ()=>{
+  const t = ugcTarget;
+  if(!t || !t.uid) return;
+  blockedUids.add(t.uid);
+  try{ localStorage.setItem(BLOCK_KEY, JSON.stringify([...blockedUids])); }catch(e){}
+  closeSheets();
+  $('photoView').classList.remove('open');
+  if(detailId!=null) openDetail(detailId, true);
+  showToast('この人の口コミと写真を表示しないようにしました');
+});
 function reviewsHtml(id){
-  const list = reviewsByShop.get(id) || [];
+  const list = (reviewsByShop.get(id) || []).filter(r=> !isBlocked(r.uid));
   if(!list.length) return '';
   const fmt = ts=> ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ja-JP', {year:'numeric', month:'numeric', day:'numeric'}) : '';
   return `<section class="reviews"><h3>みんなの評価</h3>${list.map(r=> `
@@ -1075,6 +1127,7 @@ function reviewsHtml(id){
         <span class="review-name">${escapeHtml(r.userName || 'ユーザー')}${currentUser && r.uid===currentUser.uid ? '（あなた）' : ''}</span>
         <span class="review-stars">${'★'.repeat(r.rating)}<span style="color:var(--line)">${'★'.repeat(5-r.rating)}</span></span>
         <span class="review-date">${fmt(r.updatedAt)}</span>
+        ${currentUser && r.uid===currentUser.uid ? '' : `<button class="review-more" type="button" data-review-uid="${escapeHtml(r.uid || '')}" aria-label="報告・表示しない"><i class="ri-more-fill"></i></button>`}
       </div>
       ${r.comment ? `<div class="review-comment">${escapeHtml(r.comment)}</div>` : ''}
     </div>`).join('')}</section>`;
@@ -1202,6 +1255,7 @@ function renderPost(){
     </div>
     <div class="form-submit">
       <button class="btn btn-main" id="pSubmit" disabled><i class="ri-map-pin-add-line"></i>地図に追加する</button>
+      <p class="legal-note">投稿すると、<a href="https://osakenomitai.com/terms.html" target="_blank" rel="noopener">利用規約</a>に同意したものとします。</p>
     </div>`;
 
   starInput($('pStars'), 0, n=>{ postRating = n; });
@@ -1511,20 +1565,35 @@ function loadPhotos(shopId){
     if(detailId===shopId && $('detailPhotos')) $('detailPhotos').innerHTML = photosHtml(shopId);
   }).catch(()=>{});
 }
+function visiblePhotos(shopId){ return (photosByShop.get(shopId) || []).filter(p=> !isBlocked(p.uid)); }
+let viewingPhoto = null;
 function photosHtml(shopId){
-  const list = photosByShop.get(shopId) || [];
+  const list = visiblePhotos(shopId);
   if(!list.length) return '';
   return `<section class="photos"><h3>みんなの写真</h3><div class="photo-strip">${list.map((p, i)=>
     `<button type="button" data-photo="${i}" aria-label="写真を大きく見る"><img src="${escapeHtml(p.image)}" alt="" loading="lazy"></button>`).join('')}</div></section>`;
 }
 $('detail').addEventListener('click', e=>{
+  const rv = e.target.closest('[data-review-uid]');
+  if(rv && detailId!=null){
+    const r = (reviewsByShop.get(detailId) || []).find(x=> x.uid===rv.dataset.reviewUid);
+    if(r) openUgcSheet({kind:'review', shopId: detailId, uid: r.uid, userName: r.userName, text: r.comment || ''});
+    return;
+  }
   const b = e.target.closest('[data-photo]');
   if(!b || detailId==null) return;
-  const p = (photosByShop.get(detailId) || [])[+b.dataset.photo];
+  const p = visiblePhotos(detailId)[+b.dataset.photo];
   if(!p) return;
+  viewingPhoto = p;
   $('photoViewImg').src = p.image;
   $('photoViewCap').textContent = `${p.userName || 'ユーザー'}さんの写真`;
+  $('photoViewMore').style.display = currentUser && p.uid===currentUser.uid ? 'none' : '';
   $('photoView').classList.add('open');
+});
+$('photoViewMore').addEventListener('click', e=>{
+  e.stopPropagation();
+  const p = viewingPhoto;
+  if(p) openUgcSheet({kind:'photo', shopId: p.shopId || detailId, uid: p.uid, userName: p.userName, text: ''});
 });
 $('photoView').addEventListener('click', e=>{ if(e.target.id!=='photoViewImg') $('photoView').classList.remove('open'); });
 
@@ -1757,7 +1826,8 @@ function renderMypage(){
         <p>ログインすると、気になる酒場の保存と<br>閲覧履歴が残せます。</p>
         <button class="btn btn-primary" id="loginBtn"><i class="ri-google-fill"></i>Googleでログイン</button>
       </div>
-      ${installRowHtml() ? `<div class="menu-list">${installRowHtml()}</div>` : ''}`;
+      ${installRowHtml() ? `<div class="menu-list">${installRowHtml()}</div>` : ''}
+      <div class="legal-links"><a href="https://osakenomitai.com/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a><a href="https://osakenomitai.com/terms.html" target="_blank" rel="noopener">利用規約</a></div>`;
     $('loginBtn').addEventListener('click', login);
     bindInstallRow(body);
     return;
@@ -1782,14 +1852,57 @@ function renderMypage(){
       <div class="menu-row" data-list="history"><i class="ri-time-line"></i><span>閲覧履歴</span><i class="ri-arrow-right-s-line"></i></div>
       ${isAdminUser() ? `<div class="menu-row" data-list="reports"><i class="ri-flag-line"></i><span>届いた報告</span>${reports.length ? `<span class="badge">${reports.length}</span>` : ''}<i class="ri-arrow-right-s-line"></i></div>` : ''}
       ${installRowHtml()}
-    </div>`;
+      <div class="menu-row danger-row" id="deleteAccountRow"><i class="ri-user-unfollow-line"></i><span>退会する（アカウントを削除）</span><i class="ri-arrow-right-s-line"></i></div>
+    </div>
+    <div class="legal-links"><a href="https://osakenomitai.com/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a><a href="https://osakenomitai.com/terms.html" target="_blank" rel="noopener">利用規約</a></div>`;
   bindInstallRow(body);
+  $('deleteAccountRow').addEventListener('click', deleteAccount);
   $('logoutBtn').addEventListener('click', ()=>{
     auth.signOut();
     if(isNativeApp() && window.Capacitor.Plugins.FirebaseAuthentication) window.Capacitor.Plugins.FirebaseAuthentication.signOut().catch(()=>{});
   });
   $('shareBtn').addEventListener('click', openShareSheet);
   body.querySelectorAll('.menu-row[data-list]').forEach(r=> r.addEventListener('click', ()=> openMypageList(r.dataset.list)));
+}
+/* 退会：自分の保存・行った記録・閲覧履歴・口コミ・写真を消し、アカウントを削除する。
+   掲載した酒場はみんなの地図の情報なので残し、掲載した人の名前だけ「退会したユーザー」にする */
+async function deleteAccount(){
+  const user = currentUser;
+  if(!user) return;
+  if(!confirm('退会すると、保存した酒場・行った記録・閲覧履歴・口コミ・写真が消え、元に戻せません。掲載した酒場は地図に残ります（名前は「退会したユーザー」になります）。退会しますか？')) return;
+  showToast('退会の手続きをしています…');
+  const uid = user.uid;
+  try{
+    const dels = [];
+    for(const c of ['saved', 'visits', 'history']){
+      const snap = await db.collection('users').doc(uid).collection(c).get();
+      snap.forEach(d=> dels.push(d.ref));
+    }
+    for(const c of ['reviews', 'photos']){
+      const snap = await db.collection(c).where('uid', '==', uid).get();
+      snap.forEach(d=> dels.push(d.ref));
+    }
+    for(let i=0; i<dels.length; i+=400){
+      const b = db.batch();
+      dels.slice(i, i+400).forEach(r=> b.delete(r));
+      await b.commit();
+    }
+    await db.collection('users').doc(uid).delete().catch(()=>{});
+    const shops = await db.collection('shops').where('createdBy', '==', uid).get();
+    for(const d of shops.docs){
+      await d.ref.update({createdByName: '退会したユーザー', updatedAt: firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
+    }
+    await user.delete();
+    if(isNativeApp() && window.Capacitor.Plugins.FirebaseAuthentication) window.Capacitor.Plugins.FirebaseAuthentication.signOut().catch(()=>{});
+    showToast('退会しました。ご利用ありがとうございました');
+  }catch(e){
+    if(e && e.code==='auth/requires-recent-login'){
+      await auth.signOut();
+      showToast('確認のため、もう一度ログインしてから退会してください');
+    }else{
+      showToast('退会できませんでした。時間をおいてもう一度お試しください');
+    }
+  }
 }
 function myPosts(){
   if(!currentUser) return [];
