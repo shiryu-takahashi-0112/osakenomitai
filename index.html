@@ -1724,7 +1724,17 @@ function loadHistoryCount(uid){
     renderMypage();
   }).catch(()=>{});
 }
+// App Store・Google Play 版（app/ の Capacitor）の中で開いているか
+function isNativeApp(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
 function login(){
+  // アプリの中では Google のポップアップが使えないので、端末の Google ログインを使う
+  const fa = isNativeApp() && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication;
+  if(fa){
+    fa.signInWithGoogle({ skipNativeAuth: true })
+      .then(r=> auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(r.credential.idToken)))
+      .catch(()=> showToast('ログインできませんでした'));
+    return;
+  }
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(()=> showToast('ログインできませんでした'));
 }
 
@@ -1764,7 +1774,10 @@ function renderMypage(){
       ${installRowHtml()}
     </div>`;
   bindInstallRow(body);
-  $('logoutBtn').addEventListener('click', ()=> auth.signOut());
+  $('logoutBtn').addEventListener('click', ()=>{
+    auth.signOut();
+    if(isNativeApp() && window.Capacitor.Plugins.FirebaseAuthentication) window.Capacitor.Plugins.FirebaseAuthentication.signOut().catch(()=>{});
+  });
   $('shareBtn').addEventListener('click', openShareSheet);
   body.querySelectorAll('.menu-row[data-list]').forEach(r=> r.addEventListener('click', ()=> openMypageList(r.dataset.list)));
 }
@@ -1960,7 +1973,7 @@ $('listBack').addEventListener('click', closeSharedList);
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); installPrompt = e; renderMypage(); });
 window.addEventListener('appinstalled', ()=>{ installPrompt = null; showToast('ホーム画面に追加しました'); renderMypage(); });
-function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }
+function isStandalone(){ return isNativeApp() || window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }
 function installRowHtml(){
   if(isStandalone()) return '';
   return `<div class="menu-row" id="installRow"><i class="ri-smartphone-line"></i><span>ホーム画面に追加</span><i class="ri-arrow-right-s-line"></i></div>`;

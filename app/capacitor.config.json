@@ -1,0 +1,35 @@
+{
+  "appId": "com.osakenomitai.app",
+  "appName": "オサケノミタイ",
+  "webDir": "www",
+  "backgroundColor": "#ffffff",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": [
+        "google.com"
+      ]
+    },
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "backgroundColor": "#ffffff"
+    }
+  },
+  "experimental": {
+    "ios": {
+      "spm": {
+        "swiftToolsVersion": "6.1",
+        "packageOptions": {
+          "@capacitor-firebase/authentication": {
+            "symlink": true
+          }
+        },
+        "packageTraits": {
+          "@capacitor-firebase/authentication": [
+            "Google"
+          ]
+        }
+      }
+    }
+  }
+}

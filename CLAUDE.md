@@ -56,3 +56,10 @@
 - `main` に push すると動く GitHub Actions（`.github/workflows/firestore-rules.yml`）はあるが、認証に使う GitHub Secrets の `FIREBASE_SERVICE_ACCOUNT` が未登録のため、警告を出して何もせずに終わる。
 - 登録用のCoworkタスク（サービスアカウントを作って鍵をSecretに入れる）は、一度も実行されないまま2026-09-30に削除した。自動にしたくなったら、`~/.claude-work/scheduled-tasks/osakenomitai-firestore-rules-service-account/SKILL.md` から作り直せる。
 - ルールを変えたら、`index.html` 側（`GENRES` など）と食い違っていないかも確認する。
+
+## App Store・Google Play 版（`app/`、2026-11-27に作り始めた）
+
+- Shiryu の指示で、ウェブ版をストアに出せるアプリにする。作りは Capacitor。手順と足りないところは `app/README.md`。
+- アプリの中の画面は、一番上の `index.html` を写したもの。`index.html` を直したら、`cd app && npm run sync` で取り込む。アプリかどうかで分けたい処理は `isNativeApp()` を使う。
+- `app/` は osakenomitai.com に公開しない（`site/build.sh` で除いている）。
+- ストアの登録（Apple 年99ドル、Google Play 25ドル）は、支払いが絡むので Shiryu が決める。2026-11-27時点では未登録。
